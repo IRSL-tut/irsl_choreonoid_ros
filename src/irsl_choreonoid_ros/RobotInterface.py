@@ -1,6 +1,7 @@
 import yaml
 import sys
 import os
+import threading
 
 # ROS
 import rospy
@@ -38,6 +39,9 @@ class MobileBaseInterface(object):
 
     def move_velocity(self, vel_x, vel_y, vel_th):
         msg = self.msg()
+        msg.linear.x = vel_x
+        msg.linear.y = vel_y
+        msg.angular.y = vel_th
         self.pub.publish(msg)
 
     def move_position(self):
@@ -48,6 +52,7 @@ class MobileBaseInterface(object):
 
     def move_trajectory(self, traj):
         pass
+    
 
 class JointGroupTopic(object):
     def __init__(self, group, body=None):
@@ -69,9 +74,9 @@ class JointGroupTopic(object):
         msg.joint_names = self.joint_names
         point = JointTrajectoryPoint()
         point.positions = [j.q for j in self.joints]
-        point.time_from_start = rospy.Duration(duration)
+        point.time_from_start = rospy.Duration(tm)
         msg.points.append(point)
-        self.finish_time = rospy.get_rostime() + rospy.Duration(duration)
+        self.finish_time = rospy.get_rostime() + rospy.Duration(tm)
         self.pub.publish(msg)
 
     def isFinished(self):
@@ -213,9 +218,24 @@ class RobotInterface(object):
             return
 
         self.devices = DeviceInterface(self.info['devices'], body=self.body)
+    
+    def update(self):
+        try:
+            rospy.spin()
+        except rospy.ROSInterruptException: pass
+
+    def run(self):
+        self.thread = threading.Thread(target=self.update)
+        self.thread.start()
+    
+    def stop(self):
+        self.thread.join()
+
+        
 
 # from irsl_choreonoid_ros.RobotInterface import RobotInterface
 # ri = RobotInterface('robot_interface.yaml')
+# ri.run()
 # robot_model = ri.copyRobotModel()
 # ri.mobile_base.move_velocity(1, 0, 0)
 # av = robot_model.angleVector()
