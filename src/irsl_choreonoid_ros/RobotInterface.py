@@ -219,13 +219,16 @@ class RobotInterface(object):
 
         self.devices = DeviceInterface(self.info['devices'], body=self.body)
     
-    def update(self):
+    def update(self, tm=0.01):
+        time.sleep(tm)
+    
+    def spin(self):
         try:
             rospy.spin()
         except rospy.ROSInterruptException: pass
 
     def run(self):
-        self.thread = threading.Thread(target=self.update)
+        self.thread = threading.Thread(target=self.spin)
         self.thread.start()
     
     def stop(self):
