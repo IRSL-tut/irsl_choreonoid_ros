@@ -149,9 +149,11 @@ class RosDevice(object):
         self.msg = eval('{}'.format(tp[1]))
 
         self.sub = rospy.Subscriber(self.topic, self.msg, self.callback)
+        self.is_new = False
 
     def callback(self, msg):
         self.current_msg = msg
+        self.is_new = True
         ## TODO: update robot-model
 
 class DeviceInterface(object):
@@ -163,6 +165,9 @@ class DeviceInterface(object):
             self.devices[dev['name']] = RosDevice(dev)
 
     def data(self, name):
+        while not self.devices[name].is_new:
+            time.sleep(0.001)
+        self.devices[name].is_new = False
         dev = self.devices[name]
         return dev.current_msg
 
@@ -220,8 +225,6 @@ class RobotInterface(object):
 
         self.devices = DeviceInterface(self.info['devices'], body=self.body)
     
-    def update(self, tm=0.01):
-        time.sleep(tm)
     
     def spin(self):
         try:
