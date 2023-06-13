@@ -1,8 +1,6 @@
 import yaml
 import sys
 import os
-import threading
-import time
 
 # ROS
 import rospy
@@ -53,7 +51,6 @@ class MobileBaseInterface(object):
 
     def move_trajectory(self, traj):
         pass
-    
 
 class JointGroupTopic(object):
     def __init__(self, group, body=None):
@@ -149,11 +146,9 @@ class RosDevice(object):
         self.msg = eval('{}'.format(tp[1]))
 
         self.sub = rospy.Subscriber(self.topic, self.msg, self.callback)
-        self.is_new = False
 
     def callback(self, msg):
         self.current_msg = msg
-        self.is_new = True
         ## TODO: update robot-model
 
 class DeviceInterface(object):
@@ -164,12 +159,7 @@ class DeviceInterface(object):
         for dev in device_list:
             self.devices[dev['name']] = RosDevice(dev)
 
-    def wait_newdata(self, name):
-        while not self.devices[name].is_new:
-            time.sleep(0.001)
-
     def data(self, name):
-        self.devices[name].is_new = False
         dev = self.devices[name]
         return dev.current_msg
 
@@ -226,25 +216,9 @@ class RobotInterface(object):
             return
 
         self.devices = DeviceInterface(self.info['devices'], body=self.body)
-    
-    
-    def spin(self):
-        try:
-            rospy.spin()
-        except rospy.ROSInterruptException: pass
-
-    def run(self):
-        self.thread = threading.Thread(target=self.spin)
-        self.thread.start()
-    
-    def stop(self):
-        self.thread.join()
-
-        
 
 # from irsl_choreonoid_ros.RobotInterface import RobotInterface
 # ri = RobotInterface('robot_interface.yaml')
-# ri.run()
 # robot_model = ri.copyRobotModel()
 # ri.mobile_base.move_velocity(1, 0, 0)
 # av = robot_model.angleVector()
