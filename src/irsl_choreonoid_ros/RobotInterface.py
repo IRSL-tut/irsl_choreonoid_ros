@@ -164,9 +164,11 @@ class DeviceInterface(object):
         for dev in device_list:
             self.devices[dev['name']] = RosDevice(dev)
 
-    def data(self, name):
+    def wait_newdata(self, name):
         while not self.devices[name].is_new:
             time.sleep(0.001)
+
+    def data(self, name):
         self.devices[name].is_new = False
         dev = self.devices[name]
         return dev.current_msg
