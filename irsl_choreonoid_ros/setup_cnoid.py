@@ -126,11 +126,15 @@ def _applyParameter(item, param):
             exec(eval_str, locals(), globals())
 
 def _getDictValue(in_dict, keys):
+    if in_dict is None:
+        return
     for k in keys:
         if k in in_dict:
             return in_dict[k]
 
 def _getDictValueExist(in_dict, keys):
+    if in_dict is None:
+        return (False, None)
     for k in keys:
         if k in in_dict:
             return (True, in_dict[k])
@@ -507,7 +511,36 @@ class SetupCnoid(object):
         cnoid = cls()
         cnoid.createCnoidFromYaml(yamlFile, **kwargs)
         return cnoid
+    @classmethod
+    def setupEnvironment(cls, info, **kwargs):
+        """
+        Building environment (setting objects) under the WorldItem (class method)
 
+        Args:
+            info_dict ( dict['key': value] ) : Dictionary for representing objects on environment
+            world (str, default='World') : Name of WorldItem, added objects under this item
+            craeteWorld (boolean, default=False) : If True, creating new WorldItem
+            setCamera (boolean, default=False) : If True, set camera position
+            offset (cnoid.IRSLCoords.coordinates) : Offset of objects
+        """
+        cnoid = cls()
+        cnoid.buildEnvironment(info, **kwargs)
+        return cnoid
+    @classmethod
+    def setupCnoid(cls, info, **kwargs):
+        """
+        Creating project from parameters (class method)
+
+        Args:
+            info_dict ( dict['key': value] ) : Dictionary for representing the project
+            addDefaultSimulator (boolean, default=True) : If True, adding new SimulatorItem if there is no instruction in info_dict
+            addDefaultWorld (boolean, default=True) : If True, adding new WorldItem if there is no instruction in info_dict
+            noEnvironment (boolean, default=False) : If True, not adding environment(objects). Use buildEnvironment method.
+
+        """
+        cnoid = cls()
+        cnoid.createCnoid(info, **kwargs)
+        return cnoid
     def startSimulator(self, realTime=None):
         """
         Starting simulation
@@ -529,6 +562,7 @@ class SetupCnoid(object):
         if wd is None:
             if self.world_item is None:
                 self.world_item = WorldItem()
+                self.world_item.name = name
                 _applyParameter(self.world_item, param)
                 self.root_item.addChildItem(self.world_item)
         else:
