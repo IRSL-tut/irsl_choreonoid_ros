@@ -3,7 +3,7 @@ from cnoid.Base import RootItem
 from cnoid.Base import ItemTreeView
 
 from cnoid.BodyPlugin import AISTSimulatorItem
-from cnoid.BodyPlugin import GLVisionSimulatorItem
+from cnoid.GLVisionSimulatorPlugin import GLVisionSimulatorItem
 from cnoid.BodyPlugin import BodyItem
 from cnoid.BodyPlugin import WorldItem
 from cnoid.BodyPlugin import SimulationBar
