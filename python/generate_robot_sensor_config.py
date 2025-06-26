@@ -10,11 +10,23 @@ try:
 except ImportError:
     import sys
     import shutil
-    choreonoid_path = os.path.join(os.path.dirname(shutil.which('choreonoid')), '../lib/choreonoid-2.0/python') if shutil.which('choreonoid') is not None else None
-    if choreonoid_path is None:
-        print('Error: choreonoid_path not found.', file=sys.stderr)
+    choreonoid_bin_path = shutil.which('choreonoid')
+    if choreonoid_bin_path is None:
+        print('Error: choreonoid is not found.', file=sys.stderr)
         sys.exit(1)
-    sys.path.append(choreonoid_path)
+    choreonoid_bin_dir_path = os.path.dirname(choreonoid_bin_path)
+    choreonoid_share_path = os.path.join(choreonoid_bin_dir_path, '../share')
+    chorenoid_ver = [dirname[dirname.find('choreonoid-')+len('choreonoid-'):] for dirname in os.listdir(choreonoid_share_path) if dirname.find('choreonoid-') != -1]
+    if len(chorenoid_ver) > 0:
+        chorenoid_ver = chorenoid_ver[0]
+    else :
+        chorenoid_ver = None
+    choreonoid_python_path = os.path.join(choreonoid_bin_dir_path, '../lib/choreonoid-{}/python'.format(chorenoid_ver))
+    print(choreonoid_python_path)
+    if choreonoid_python_path is None or not os.path.exists(choreonoid_python_path):
+        print('Error: choreonoid_python_path not found.', file=sys.stderr)
+        sys.exit(1)
+    sys.path.append(choreonoid_python_path)
     import cnoid.Body
     import cnoid.Util
 
