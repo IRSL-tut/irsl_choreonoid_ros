@@ -12,12 +12,20 @@ from sensor_msgs.msg import LaserScan
 #from std_msgs.msg import Header
 # isnan
 
-def unpack_rgb(fval):
+def _unpack_rgb(fval):
     # cast float32 to int so that bitwise operations are possible
     s = struct.pack('>f', fval)
     i = struct.unpack('>l', s)[0]
     # you can get back the float value by the inverse operations
     pack = ctypes.c_uint32(i).value
+    r = (pack & 0x00FF0000)>> 16
+    g = (pack & 0x0000FF00)>> 8
+    b = (pack & 0x000000FF)
+    return (r, g, b)
+
+def _unpack_rgb_i(ival):
+    # you can get back the float value by the inverse operations
+    pack = ctypes.c_uint32(ival).value
     r = (pack & 0x00FF0000)>> 16
     g = (pack & 0x0000FF00)>> 8
     b = (pack & 0x000000FF)
@@ -47,24 +55,30 @@ def convertPointCloud2ToPointsRaw(pc2msg, skip_nans=True, nanValue=None, ROI=Non
     #
     uvs = None
     if ROI is not None:
-        uvs = []
-        for u in range(ROI[0], ROI[0]+ROI[2]):
-            for v in range(ROI[1], ROI[1]+ROI[3]):
-                uvs.append( (u, v) )
+        uvs = [ (u, v) for u in range(ROI[0], ROI[0]+ROI[2])  for v in range(ROI[1], ROI[1]+ROI[3]) ]
     #
     _addColor = False
+    _color_index = -1
+    _data_type = None
     if addColor:
-        if len(pc2msg.fields) > 3:
-            if pc2msg.fields[3].name == 'rgb':
+        for idx, ff in enumerate(pc2msg.fields):
+            if ff.name == 'rgb' or ff.name == 'rgba':
+                _data_type = ff.datatype
+                _color_index = idx
+                ff.datatype = PointField.UINT32
                 _addColor = True
+                break
     #
     gen = pc2.read_points(pc2msg, skip_nans=skip_nans, uvs=uvs)
     #
     for data in gen:
         points.append( np.array([ data[0], data[1], data[2] ]) )
         if _addColor:
-            r, g, b = unpack_rgb(data[3])
-            colors.append( np.array([r, g, b]) )
+            r, g, b = _unpack_rgb_i( data[ _color_index ] )
+            colors.append( np.array([r, g, b])/255.0 )
+    # revert color field
+    if _color_index >= 0:
+        pc2msg.fields[ _color_index ].datatype = _data_type
     return points, colors
 
 def convertPointCloud2ToPoints(pc2msg, skip_nans=True, nanValue=None, ROI=None, addColor=True, **kwargs):
