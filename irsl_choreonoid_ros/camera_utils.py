@@ -33,10 +33,20 @@ class PinholeCameraModel(image_geometry.PinholeCameraModel):
         points = []
         colors = []
         # データ作成範囲指定
-        y_start = 0      if ROI is None else ROI.y_offset
-        y_end   = height if ROI is None else ROI.y_offset + ROI.height
-        x_start = 0      if ROI is None else ROI.x_offset
-        x_end   = width  if ROI is None else ROI.x_offset + ROI.width
+        y_start = 0
+        y_end   = height
+        x_start = 0
+        x_end   = width
+        if type(ROI) is RegionOfInterest:
+            y_start = ROI.y_offset
+            y_end   = ROI.y_offset + ROI.height
+            x_start = ROI.x_offset
+            x_end   = ROI.x_offset + ROI.width
+        elif type(ROI) is tuple:
+            y_start = ROI[1]
+            y_end   = ROI[1] + ROI[3]
+            x_start = ROI[0]
+            x_end   = ROI[0] + ROI[2]
         #
         for v in range(y_start, y_end):
             for u in range(x_start, x_end):
