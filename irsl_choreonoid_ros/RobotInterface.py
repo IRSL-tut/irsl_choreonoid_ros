@@ -1178,7 +1178,7 @@ class OneShotSubscriber(RosDeviceBase):
     Subscribe just N messages
 
     """
-    def __init__(self, topic, msg, size=1):
+    def __init__(self, topic, msg, size=1, **kwargs):
         """"
         Args:
             topic ( str ) : Name of Topic
@@ -1192,7 +1192,7 @@ class OneShotSubscriber(RosDeviceBase):
         self.msg_time = None
         self.current_msg = None
         self.results = [] ## size
-        self.sub = rospy.Subscriber(self.topic, self.msg, self.callback)
+        self.sub = rospy.Subscriber(self.topic, self.msg, self.callback, **kwargs)
 
     def callback(self, msg):
         self.msg_time = rospy.get_rostime()
