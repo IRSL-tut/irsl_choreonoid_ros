@@ -1270,6 +1270,20 @@ class OneShotSyncSubscriber(RosDeviceBase):
             else:
                 rospy.sleep(0.002)
 
+def initializeROS(node_name='robot_interface', MASTER_URI=None, MASTER=None, MASTER_PORT=11311, IP=None, HOSTNAME=None, **kwargs):
+    #
+    if MASTER is not None:
+        os.environ['ROS_MASTER_URI'] = 'http://{}:{}'.format(MASTER, MASTER_PORT)
+    elif MASTER_URI is not None:
+        os.environ['ROS_MASTER_URI'] = MASTER_URI
+    if IP is not None:
+        os.environ['ROS_IP']         = IP
+    if HOSTNAME is None:
+        HOSTNAME = IP
+    if HOSTNAME is not None:
+        os.environ['ROS_HOSTNAME']   = HOSTNAME
+    #
+    rospy.init_node(node_name, **kwargs)
 #
 # RobotInterface
 #
@@ -1289,7 +1303,7 @@ class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
             node_name (str, default='robot_interface') : Name of node
             anonymous (boolean, default = False) : If True, ROS node will start with this node-name.
             connection_wait (float, default=3.0) : Wait until ROS connection has established
-            connection (boolean, default=True) : If false, create instace without ROS connection
+            connection (boolean, default=True) : If false, create instance without ROS connection
             MASTER_URI (str, optional) : Set environment variable, ROS_MASTER_URI if MASTER is not set
             MASTER (str, optional) : Set environment variable, ROS_MASTER_URI = http://MASTER:MASTER_PORT
             MASTER_PORT (int, default 11311) : Set environment variable, ROS_MASTER_URI = http://MASTER:MASTER_PORT
