@@ -17,19 +17,19 @@ class TransformListener(tf.TransformListener):
         """
         super().__init__(*args, **kwargs)
 
-    def lookupCoords(self, target_frame, source_frame, time):
+    def lookupCoords(self, target_frame, source_frame, rostime):
         """
         Looks up the transformation between two frames and returns it as coordinates.
 
         Args:
             target_frame (str): The name of the target frame.
             source_frame (str): The name of the source frame.
-            time (rospy.Time): The time at which to perform the lookup.
+            rostime (rospy.Time): The time at which to perform the lookup.
 
         Returns:
             coordinates: A coordinates object containing the translation and rotation.
         """
-        trs, quat = super().lookupTransform(target_frame, source_frame, time)
+        trs, quat = super().lookupTransform(target_frame, source_frame, rostime)
         return coordinates(trs, quat)
 
     def waitForCoords(self, origin_frame, target_frame, rostime, timeout_sec=1.0):
@@ -42,7 +42,7 @@ class TransformListener(tf.TransformListener):
             rostime (rospy.Time): The time at which to wait for the transformation.
             timeout_sec (float, optional): The timeout duration in seconds. Defaults to 1.0.
         """
-        self.waitForTransform(origin_frame, target_frame, time, rospy.Duration(timeout_sec))
+        self.waitForTransform(origin_frame, target_frame, rostime, rospy.Duration(timeout_sec))
 
     def tryWaiting(self, origin_frame, target_frame, rostime, timeout_sec=1.0):
         """
@@ -58,7 +58,7 @@ class TransformListener(tf.TransformListener):
             bool: True if the transformation becomes available, False otherwise.
         """
         try:
-            self.waitForTransform(origin_frame, target_frame, time, rospy.Duration(timeout_sec))
+            self.waitForTransform(origin_frame, target_frame, rostime, rospy.Duration(timeout_sec))
         except Exception as e:
             rospy.logwarn('{}'.format(e))
             return False
