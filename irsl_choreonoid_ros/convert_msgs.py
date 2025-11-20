@@ -9,6 +9,10 @@ from std_msgs.msg import  (ByteMultiArray,
 import numpy
 from cnoid.IRSLCoords import coordinates
 
+### cameraImage
+from sensor_msgs.msg import Image, CameraInfo
+from cv_bridge import CvBridge
+
 """
 irsl_choreonoid_ros/convert_msgs.py
 
@@ -278,6 +282,24 @@ def convertFromMultiArray(rosmsg):
     dtype = __Msg_to_NUMPY__[rosmsg._md5sum]
     return convertFromMultiArrayRaw(rosmsg, dtype)
 
+###
+#
+#  CameraImage
+#
+###
+def _to_rosImage(cv_img, header=None, **kwargs):
+    bridge = CvBridge()
+    msg = bridge.cv2_to_imgmsg(cv_img, **kwargs)
+    if header is not None:
+        msg.header = header
+    return msg
+
+def _from_rosImage(msg):
+    bridge = CvBridge()
+    cv_img = bridge.imgmsg_to_cv2(msg)
+    return msg.header, cv_img
+
+
 __Msg_to_NUMPY__ = {}
 __NUMPY_to_Msg__ = {}
 def generateMultiArrayMap():
@@ -339,6 +361,9 @@ def generateConversionMap():
     __from_function_map__[ geometry_msgs.msg.Transform._md5sum ] = _from_transform
     ____to_function_map__[ geometry_msgs.msg.TransformStamped._md5sum ] = _to_transform_stamped
     __from_function_map__[ geometry_msgs.msg.TransformStamped._md5sum ] = _from_transform_stamped
+    ##
+    ____to_function_map__[ sensor_msgs.msg.Image._md5sum ] = _to_rosImage
+    __from_function_map__[ sensor_msgs.msg.Image._md5sum ] = _from_rosImage
 
 generateConversionMap()
 generateMultiArrayMap()
