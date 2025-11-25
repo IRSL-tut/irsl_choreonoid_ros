@@ -49,21 +49,21 @@ def initializeROS(node_name=None, MASTER_URI=None, MASTER=None, MASTER_PORT=1131
     """
     #
     if MASTER is not None:
-        if 'ROS_MASTER_URI' ins in os.environ:
+        if 'ROS_MASTER_URI'  in os.environ:
             printf(f'ROS_MASTER_URI({os.environ["ROS_MASTER_URI"]}) is overwritten by {MASTER}')
         os.environ['ROS_MASTER_URI'] = 'http://{}:{}'.format(MASTER, MASTER_PORT)
     elif MASTER_URI is not None:
-        if 'ROS_MASTER_URI' ins in os.environ:
+        if 'ROS_MASTER_URI'  in os.environ:
             printf(f'ROS_MASTER_URI({os.environ["ROS_MASTER_URI"]}) is overwritten by {MASTER}')
         os.environ['ROS_MASTER_URI'] = MASTER_URI
     if IP is not None:
-        if 'ROS_IP' ins in os.environ:
+        if 'ROS_IP'  in os.environ:
             printf(f'ROS_IP({os.environ["ROS_IP"]}) is overwritten by {IP}')
         os.environ['ROS_IP']         = IP
     if HOSTNAME is None:
         HOSTNAME = IP
     if HOSTNAME is not None:
-        if 'ROS_HOSTNAME' ins in os.environ:
+        if 'ROS_HOSTNAME'  in os.environ:
             printf(f'ROS_HOSTNAME({os.environ["ROS_HOSTNAME"]}) is overwritten by {HOSTNAME}')
         os.environ['ROS_HOSTNAME']   = HOSTNAME
     #
