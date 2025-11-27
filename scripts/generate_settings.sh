@@ -28,7 +28,7 @@ WORLDSETTINGFILE=world.yaml
 USE_WHEEL=False
 USE_ARM=True
 WHEEL_LIST=()
-CONTROLLERS=("joint_controller" "joint_state_controller")
+CONTROLLERS=("trajectory_controller" "joint_state_controller")
 GEN_TYPE=2 ## generate world.yaml
 
 while [[ $# -gt 0 ]]; do
@@ -135,7 +135,10 @@ if [ $GEN_TYPE -eq 2 ] ; then
 fi
 
 # generate real robot setting files
-rosrun irsl_choreonoid_ros generate_controller_config.py --use_wheel $USE_WHEEL > dx_controller_config.yaml
-rosrun irsl_choreonoid_ros generate_dynamixel_config.py --bodyfile $BODYFILE --wheeljoints ${WHEEL_LIST[@]} > dx_servo_config.yaml
+# rosrun irsl_choreonoid_ros generate_controller_config.py --use_wheel $USE_WHEEL > dx_controller_config.yaml
+# rosrun irsl_choreonoid_ros generate_dynamixel_config.py --bodyfile $BODYFILE --wheeljoints ${WHEEL_LIST[@]} > dx_servo_config.yaml
 rosrun irsl_choreonoid_ros generate_robot_sensor_config.py --bodyfile $BODYFILE > sensor_config.yaml
 # rosrun irsl_choreonoid_ros generate_ros_settings.py > ros_settings.yaml
+rosrun irsl_choreonoid_ros generate_dxl_shm_config.py --bodyfile $BODYFILE > dynamixel_config.yaml
+rosrun irsl_choreonoid_ros generate_ros_control.py --bodyfile $BODYFILE > ros_control.yaml
+rosrun irsl_choreonoid_ros generate_jointlist.py --bodyfile $BODYFILE > jointlist.yaml

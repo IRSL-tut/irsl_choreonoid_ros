@@ -33,17 +33,14 @@ except ImportError:
     import cnoid.Util
 
 
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
-            prog='generate_ri_config.py', # プログラム名
-            usage='Demonstration of cnoid_dump_model', # プログラムの利用方法
-
+            prog='generate_irsl_shm_config.py', # プログラム名
+            usage='', # プログラムの利用方法
             add_help=True, # -h/–help オプションの追加
             )
     parser.add_argument('--bodyfile', type=str, default="robotname.body")
-    parser.add_argument('--use_wheel', type=strtobool, default=False)
-    parser.add_argument('--controller_name', type=str, default="trajectory_controller")
-    parser.add_argument('--wheeljoints', nargs="*", type=str, default=[])
     
     args = parser.parse_args()
     fname = args.bodyfile
@@ -61,49 +58,22 @@ if __name__=='__main__':
     rbody.initializePosition()
     rbody.calcForwardKinematics()
 
-    joint_list = []
-
-    num_link = rbody.getNumLinks()
     num_joint = rbody.getNumJoints()
-    num_device = rbody.getNumDevices()
-
+    joint_list = []
     for idx in range(num_joint):
         joint = rbody.getJoint(idx)
         joint_list.append(joint)
+    print("# This file is configlation for irsl_dynamixel_hardware_shm")
+    print("")
+    print("_default_joint: &default_joint")
+    print("  DynamixelSettings:")
+    print("    { Return_Delay_Time: 0, Operating_Mode: 3 }")
+    print("dynamixel_hardware_shm:")
+    print("  port_name: /dev/ttyUSB0")
+    print("  baud_rate: 1000000")
+    print("  joint:")
 
-    robotname = rbody.getModelName()
-    
-    print("robot_model:")
-    print("  name: {}".format(robotname))
-    print("  url: 'file:///{}'".format(os.path.abspath(args.bodyfile)))
-    print("")
-    print("{}mobile_base:".format("" if args.use_wheel else "# "))
-    print("{}  type: geometry_msgs/Twist".format("" if args.use_wheel else "# "))
-    print("{}  topic: /{}/cmd_vel".format("" if args.use_wheel else "# ", robotname))
-    print("{}  baselink: Root".format("" if args.use_wheel else "# "))
-    print("")
-    print("joint_groups:")
-    print("  -")
-    print("    name: default")
-    print("    topic: /{}/{}/command".format(robotname,args.controller_name))
-    print("    # type: 'action' or 'command'")
-    print("    type: command")
-    print("    joint_names: {}".format([j.jointName for j in joint_list if j.jointName not in args.wheeljoints]))
-    print("")
-    print("devices:")
-    print("  -")
-    print("    topic: /{}/joint_states".format(robotname))
-    print("    class: JointState")
-    print("    name: joint_state")
-    print("  -")
-    print("    topic: /{}/{}/state".format(robotname, args.controller_name))
-    print("    class: JointTrajectoryState")
-    print("    name: joint_trajectory_state")
-    for idx in range(num_device):
-        dev = rbody.getDevice(idx)
-        print("  -")
-        print("    topic: /{}/{}/value".format(robotname, dev.getName()))
-        print("    type: {}".format("std_msgs/Float64" if dev.getName().lower().find('color')<0 else "std_msgs/ColorRGBA"))
-        print("    name: {}".format(dev.getName()))
-        print("    rate: 10")
-    
+    for jointname in [j.jointName for j in joint_list]:
+        print("    #{}:".format(jointname))
+        print("    - { ID: XX, <<: *default_joint}")
+        
