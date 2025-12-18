@@ -459,7 +459,8 @@ class JointInterface(object):
         """
         tp = type(group)
         if tp is list or tp is tuple:
-            for gp in group:
+            for n_gp in group:
+                gp = self.joint_groups[n_gp]
                 gp.sendAngles(tm)
         else:
             if group is None:
