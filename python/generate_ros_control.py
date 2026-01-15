@@ -41,7 +41,8 @@ if __name__=='__main__':
             add_help=True, # -h/–help オプションの追加
             )
     parser.add_argument('--bodyfile', type=str, default="robotname.body")
-    
+    parser.add_argument('--controller_name', type=str, default="joint_controller")
+
     args = parser.parse_args()
     fname = args.bodyfile
     if not os.path.isfile(str(fname)):
@@ -70,7 +71,7 @@ if __name__=='__main__':
     print("  joints:")
     for jointname in jointnames:
         print('    - "{}"'.format(jointname))
-    print("trajectory_controller:")
+    print("{}:".format(args.controller_name))
     print("  type: position_controllers/JointTrajectoryController")
     print("  joints:")
     for jointname in jointnames:

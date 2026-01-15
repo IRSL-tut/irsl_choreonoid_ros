@@ -42,7 +42,7 @@ if __name__=='__main__':
             )
     parser.add_argument('--bodyfile', type=str, default="robotname.body")
     parser.add_argument('--use_wheel', type=strtobool, default=False)
-    parser.add_argument('--controller_name', type=str, default="trajectory_controller")
+    parser.add_argument('--controller_name', type=str, default="joint_controller")
     parser.add_argument('--wheeljoints', nargs="*", type=str, default=[])
     
     args = parser.parse_args()
@@ -85,7 +85,7 @@ if __name__=='__main__':
     print("joint_groups:")
     print("  -")
     print("    name: default")
-    print("    topic: /{}/{}/command".format(robotname,args.controller_name))
+    print("    topic: /{}/{}/command".format(robotname, args.controller_name))
     print("    # type: 'action' or 'command'")
     print("    type: command")
     print("    joint_names: {}".format([j.jointName for j in joint_list if j.jointName not in args.wheeljoints]))
@@ -106,4 +106,3 @@ if __name__=='__main__':
         print("    type: {}".format("std_msgs/Float64" if dev.getName().lower().find('color')<0 else "std_msgs/ColorRGBA"))
         print("    name: {}".format(dev.getName()))
         print("    rate: 10")
-    

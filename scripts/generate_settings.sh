@@ -111,9 +111,9 @@ if [ $GEN_TYPE -eq 1 ] ; then
 fi
 
 if [ $wheel_length -gt 0 ] ; then
-    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --use_wheel $USE_WHEEL --wheeljoints ${WHEEL_LIST[@]}  > $RICONFIGFILE
+    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --controller_name joint_controller --use_wheel $USE_WHEEL --wheeljoints ${WHEEL_LIST[@]}  > $RICONFIGFILE
 else
-    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --use_wheel $USE_WHEEL > $RICONFIGFILE
+    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --controller_name joint_controller --use_wheel $USE_WHEEL > $RICONFIGFILE
 fi
 
 if [ $GEN_TYPE -eq 1 ] ; then
@@ -140,5 +140,5 @@ fi
 rosrun irsl_choreonoid_ros generate_robot_sensor_config.py --bodyfile $BODYFILE > sensor_config.yaml
 # rosrun irsl_choreonoid_ros generate_ros_settings.py > ros_settings.yaml
 rosrun irsl_choreonoid_ros generate_dxl_shm_config.py --bodyfile $BODYFILE > dynamixel_config.yaml
-rosrun irsl_choreonoid_ros generate_ros_control.py --bodyfile $BODYFILE > ros_control.yaml
+rosrun irsl_choreonoid_ros generate_ros_control.py --bodyfile $BODYFILE --controller_name joint_controller > ros_control.yaml
 rosrun irsl_choreonoid_ros generate_jointlist.py --bodyfile $BODYFILE > jointlist.yaml
