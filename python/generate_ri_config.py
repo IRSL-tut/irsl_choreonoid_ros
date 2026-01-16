@@ -94,7 +94,7 @@ if __name__=='__main__':
             )
     parser.add_argument('--bodyfile', type=str, default="robotname.body")
     parser.add_argument('--use_wheel', type=strtobool, default=False)
-    parser.add_argument('--controller_name', type=str, default="joint_controller")
+    parser.add_argument('--controller_name', type=str, default="trajectory_controller")
     parser.add_argument('--wheeljoints', nargs="*", type=str, default=[])
 
     args = parser.parse_args()
