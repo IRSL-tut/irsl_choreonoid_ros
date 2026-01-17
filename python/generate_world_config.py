@@ -8,6 +8,7 @@ import sys
 try:
     import cnoid.Body
     import cnoid.Util
+    import cnoid.IRSLCoords
 except ImportError:
     import sys
     import shutil
@@ -30,6 +31,7 @@ except ImportError:
     sys.path.append(choreonoid_python_path)
     import cnoid.Body
     import cnoid.Util
+    import cnoid.IRSLCoords
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
@@ -62,6 +64,10 @@ if __name__ == '__main__':
     rbody.updateLinkTree()
     rbody.initializePosition()
     rbody.calcForwardKinematics()
+    
+    root_pose = rbody.getRootLink().getPosition()
+    root_position = root_pose[0:3,3].tolist()
+    root_orientation = cnoid.IRSLCoords.coordinates(root_pose).getRotationAngle().tolist()
 
     joint_list = []
 
@@ -72,18 +78,22 @@ if __name__ == '__main__':
     for idx in range(num_joint):
         joint = rbody.getJoint(idx)
         joint_list.append(joint)
-
+    
     p = pathlib.Path(args.bodyfile)
     bodyfile_path = str(p.resolve())
     robotname = args.robotname if args.robotname != "" else rbody.getModelName()
+
+    joint_controller_joints = sorted([j.jointName for j in joint_list if j.jointName not in args.wheeljoints])
+    wheel_controller_joints = sorted([j.jointName for j in joint_list if j.jointName in args.wheeljoints])
 
     world_config = {'robot':
                     {
                         'model': bodyfile_path,
                         'name': robotname,
-                        'initial_coords': {'pos': [args.offsetx, args.offsety, args.offsetz]},
-                        'initial_joint_angles': [0 for _ in range(num_joint)],
-                        'fix': True,
+                        'initial_coords': {'pos': root_position,
+                                           'aa': root_orientation},
+                        'initial_joint_angles': [joint.q for joint in joint_list],
+                        'fix': True if len(wheel_controller_joints)==0 else False,
                         'BodyROSItem': {'name_space': robotname},
                         'ROSControlItem': {'name_space': robotname}
                     },
@@ -105,11 +115,6 @@ if __name__ == '__main__':
                             'generate': {'robot': bodyfile_path,
                                          'name_space': robotname,
                                          'controllers': [
-                                             {
-                                                 'name': args.joint_controller_name,
-                                                 'type': 'position',
-                                                 'joints': sorted([j.jointName for j in joint_list if j.jointName not in args.wheeljoints])
-                                             }
                                          ]
                                          }
                         }
@@ -122,6 +127,9 @@ if __name__ == '__main__':
                         }
                     ]
                     }
-    if len(args.wheeljoints) > 0:
-        world_config['world']['ROS']['generate']['controllers'].append({'name':args.wheel_controller_name, 'type':'position', 'joints': sorted([j.jointName for j in joint_list if j.jointName in args.wheeljoints]) })
+    
+    if len(joint_controller_joints) > 0:
+        world_config['world']['ROS']['generate']['controllers'].append({'name': args.joint_controller_name, 'type': 'position', 'joints': joint_controller_joints })
+    if len(wheel_controller_joints) > 0:
+        world_config['world']['ROS']['generate']['controllers'].append({'name':args.wheel_controller_name, 'type':'position', 'joints': wheel_controller_joints })
     print(yaml.dump(world_config, indent=2, sort_keys=False))
