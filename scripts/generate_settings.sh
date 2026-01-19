@@ -111,26 +111,26 @@ if [ $GEN_TYPE -eq 1 ] ; then
 fi
 
 if [ $wheel_length -gt 0 ] ; then
-    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --use_wheel $USE_WHEEL --wheeljoints ${WHEEL_LIST[@]}  > $RICONFIGFILE
+    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --controller_name trajectory_controller --use_wheel $USE_WHEEL --wheeljoints ${WHEEL_LIST[@]}  > $RICONFIGFILE
 else
-    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --use_wheel $USE_WHEEL > $RICONFIGFILE
+    rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --controller_name trajectory_controller --use_wheel $USE_WHEEL > $RICONFIGFILE
 fi
 
 if [ $GEN_TYPE -eq 1 ] ; then
     rosrun irsl_choreonoid_ros generate_roslaunch.py --gen_type 1 --bodyfile $BODYFILE  --urdffile $URDFFILE --cnoidfile $CNOIDFILE --roscontrolfile $ROSCONTROLFILE --use_wheel $USE_WHEEL --controllers "$CONTROLLERS_LIST" > run_sim_robot.launch
 else
     if [ $wheel_length -gt 0 ] ; then
-        rosrun irsl_choreonoid_ros generate_roslaunch.py --gen_type 2 --bodyfile $BODYFILE --use_wheel True  --controllers "joint_controller wheel_controller joint_state_controller" --demo_base_dir `pwd` --urdffile $URDFFILE --worldsettings $WORLDSETTINGFILE > run_sim_robot.launch
+        rosrun irsl_choreonoid_ros generate_roslaunch.py --gen_type 2 --bodyfile $BODYFILE --use_wheel True  --controllers "trajectory_controller wheel_controller joint_state_controller" --demo_base_dir `pwd` --urdffile $URDFFILE --worldsettings $WORLDSETTINGFILE > run_sim_robot.launch
     else
-        rosrun irsl_choreonoid_ros generate_roslaunch.py --gen_type 2 --bodyfile $BODYFILE --use_wheel False --controllers "joint_controller joint_state_controller" --demo_base_dir `pwd` --urdffile $URDFFILE --worldsettings $WORLDSETTINGFILE > run_sim_robot.launch
+        rosrun irsl_choreonoid_ros generate_roslaunch.py --gen_type 2 --bodyfile $BODYFILE --use_wheel False --controllers "trajectory_controller joint_state_controller" --demo_base_dir `pwd` --urdffile $URDFFILE --worldsettings $WORLDSETTINGFILE > run_sim_robot.launch
     fi
 fi
 
 if [ $GEN_TYPE -eq 2 ] ; then
     if [ $wheel_length -gt 0 ] ; then
-    rosrun irsl_choreonoid_ros generate_world_config.py  $BODYFILE --wheeljoints ${WHEEL_LIST[@]} > $WORLDSETTINGFILE
+    rosrun irsl_choreonoid_ros generate_world_config.py  --bodyfile $BODYFILE --joint_controller_name trajectory_controller --wheeljoints ${WHEEL_LIST[@]} > $WORLDSETTINGFILE
     else
-    rosrun irsl_choreonoid_ros generate_world_config.py  $BODYFILE > $WORLDSETTINGFILE
+    rosrun irsl_choreonoid_ros generate_world_config.py  --bodyfile $BODYFILE --joint_controller_name trajectory_controller > $WORLDSETTINGFILE
     fi
 fi
 
@@ -140,5 +140,5 @@ fi
 rosrun irsl_choreonoid_ros generate_robot_sensor_config.py --bodyfile $BODYFILE > sensor_config.yaml
 # rosrun irsl_choreonoid_ros generate_ros_settings.py > ros_settings.yaml
 rosrun irsl_choreonoid_ros generate_dxl_shm_config.py --bodyfile $BODYFILE > dynamixel_config.yaml
-rosrun irsl_choreonoid_ros generate_ros_control.py --bodyfile $BODYFILE > ros_control.yaml
-rosrun irsl_choreonoid_ros generate_jointlist.py --bodyfile $BODYFILE > jointlist.yaml
+rosrun irsl_choreonoid_ros generate_ros_control.py    --bodyfile $BODYFILE --controller_name trajectory_controller > ros_control.yaml
+rosrun irsl_choreonoid_ros generate_jointlist.py      --bodyfile $BODYFILE > jointlist.yaml

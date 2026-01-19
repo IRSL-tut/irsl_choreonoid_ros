@@ -33,6 +33,58 @@ except ImportError:
     import cnoid.Util
 
 
+def print_config(robot_name, model_file, joint_names, controller_name, use_mobile, devices, output=None):
+    """
+    Args:
+        output (optional) : output file-stream. If None, sys.stdout is used
+    """
+    if output is None:
+        import sys
+        output = sys.stdout
+
+    text=f"""\
+robot_model:
+  name: {robot_name}
+  url: '{model_file}'
+
+{use_mobile}mobile_base:
+{use_mobile}  type: geometry_msgs/Twist
+{use_mobile}  topic: /{robot_name}/cmd_vel
+{use_mobile}  baselink: Root
+
+joint_groups:
+  -
+    name: default
+    topic: /{robot_name}/{controller_name}/command
+    # type: 'action' or 'command'
+    type: command
+    joint_names: {joint_names}
+
+devices:
+  -
+    topic: /{robot_name}/joint_states
+    class: JointState
+    name: joint_state
+  -
+    topic: /{robot_name}/{controller_name}/state
+    class: JointTrajectoryState
+    name: joint_trajectory_state
+"""
+    ### prints
+    print(text, end='', file=output)
+
+    ### devices
+    for dev in devices:
+        fmt = "std_msgs/Float64" if dev.getName().lower().find('color') < 0 else "std_msgs/ColorRGBA"
+        dev_text = f"""\
+  -
+    topic: /{robot_name}/{dev.getName()}/value
+    type: {fmt}
+    name: {dev.getName()}
+    rate: 10
+"""
+        print(dev_text, end='', file=output)
+
 if __name__=='__main__':
     parser = argparse.ArgumentParser(
             prog='generate_ri_config.py', # プログラム名
@@ -44,7 +96,7 @@ if __name__=='__main__':
     parser.add_argument('--use_wheel', type=strtobool, default=False)
     parser.add_argument('--controller_name', type=str, default="trajectory_controller")
     parser.add_argument('--wheeljoints', nargs="*", type=str, default=[])
-    
+
     args = parser.parse_args()
     fname = args.bodyfile
     if not os.path.isfile(str(fname)):
@@ -56,7 +108,7 @@ if __name__=='__main__':
         print("File is broken.", file=sys.stderr)
         print("Please check file : {}".format(fname), file=sys.stderr)
         exit(1)
-    
+
     rbody.updateLinkTree()
     rbody.initializePosition()
     rbody.calcForwardKinematics()
@@ -71,39 +123,9 @@ if __name__=='__main__':
         joint = rbody.getJoint(idx)
         joint_list.append(joint)
 
-    robotname = rbody.getModelName()
-    
-    print("robot_model:")
-    print("  name: {}".format(robotname))
-    print("  url: 'file:///{}'".format(os.path.abspath(args.bodyfile)))
-    print("")
-    print("{}mobile_base:".format("" if args.use_wheel else "# "))
-    print("{}  type: geometry_msgs/Twist".format("" if args.use_wheel else "# "))
-    print("{}  topic: /{}/cmd_vel".format("" if args.use_wheel else "# ", robotname))
-    print("{}  baselink: Root".format("" if args.use_wheel else "# "))
-    print("")
-    print("joint_groups:")
-    print("  -")
-    print("    name: default")
-    print("    topic: /{}/{}/command".format(robotname,args.controller_name))
-    print("    # type: 'action' or 'command'")
-    print("    type: command")
-    print("    joint_names: {}".format([j.jointName for j in joint_list if j.jointName not in args.wheeljoints]))
-    print("")
-    print("devices:")
-    print("  -")
-    print("    topic: /{}/joint_states".format(robotname))
-    print("    class: JointState")
-    print("    name: joint_state")
-    print("  -")
-    print("    topic: /{}/{}/state".format(robotname, args.controller_name))
-    print("    class: JointTrajectoryState")
-    print("    name: joint_trajectory_state")
-    for idx in range(num_device):
-        dev = rbody.getDevice(idx)
-        print("  -")
-        print("    topic: /{}/{}/value".format(robotname, dev.getName()))
-        print("    type: {}".format("std_msgs/Float64" if dev.getName().lower().find('color')<0 else "std_msgs/ColorRGBA"))
-        print("    name: {}".format(dev.getName()))
-        print("    rate: 10")
-    
+    robot_name  = rbody.getModelName()
+    model_file  = f'file:///{os.path.abspath(args.bodyfile)}'
+    joint_names = [ j.jointName for j in joint_list if j.jointName not in args.wheeljoints ]
+    use_mobile  = "" if args.use_wheel else "# "
+    devices     = [ rbody.getDevice(idx) for idx in range(num_device) ]
+    print_config(robot_name, model_file, joint_names, args.controller_name, use_mobile, devices)
