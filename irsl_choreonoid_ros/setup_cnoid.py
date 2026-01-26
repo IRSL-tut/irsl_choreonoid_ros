@@ -125,12 +125,13 @@ def _applyParameter(item, param):
             print('eval: {} / val={}'.format(eval_str, val)) ## debug
             exec(eval_str, locals(), globals())
 
-def _getDictValue(in_dict, keys):
+def _getDictValue(in_dict, keys, default=None):
     if in_dict is None:
-        return
+        return default
     for k in keys:
         if k in in_dict:
             return in_dict[k]
+    return default
 
 def _getDictValueExist(in_dict, keys):
     if in_dict is None:
@@ -734,6 +735,9 @@ class SetupCnoid(object):
         for cont_ in cont_list_:
             nm_   = _getDictValue(cont_, ('name', 'Name', 'controller_name', 'controllerName'))
             tp_   = _getDictValue(cont_, ('type', 'Type', 'controller_type', 'controllerType'))
+            gp_   = _getDictValue(cont_, ('P', 'pgain', 'Pgain', 'PGain'), 200.0)
+            gd_   = _getDictValue(cont_, ('D', 'dgain', 'Dgain', 'DGain'), 4.0)
+            gi_   = _getDictValue(cont_, ('I', 'Igain', 'Igain', 'IGain'), 0.0)
             jnms_ = _getDictValue(cont_, ('joints', 'joint_list', 'joint_names', 'jointList', 'jointNames'))
             if nm_ is None:
                 continue
@@ -742,7 +746,7 @@ class SetupCnoid(object):
             else:
                 jlst_ = [ robot_.joint(j) for j in jnms_ ]
             if tp_ is not None:
-                res = _generate_roscontrol_config(jlst_, controller_type=tp_.lower())
+                res = _generate_roscontrol_config(jlst_, gain_p=gp_, gain_d=gd_, gain_i=gi_, controller_type=tp_.lower())
                 cont_param[nm_] = res
                 urdf_str += _generate_joint_urdf_joint(jlst_, interface_type=tp_.capitalize())
             else:
@@ -797,7 +801,7 @@ def _generate_roscontrol_config_base(joint_state_publish_rate=50):
                                        'publish_rate': joint_state_publish_rate}
     return param
 
-def _generate_roscontrol_config(jointList, gain_p=0.0, gain_i=0.0, gain_d=0.0, controller_type='position'):
+def _generate_roscontrol_config(jointList, gain_p=200.0, gain_i=0.0, gain_d=4.0, controller_type='position'):
     # controller_type: 'position', 'effort', 'velocity'
     controller_param = {'type': '{}_controllers/JointTrajectoryController'.format(controller_type) }
     names = [] # names

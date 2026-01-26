@@ -31,7 +31,8 @@ except ImportError:
     import cnoid.Body
     import cnoid.Util
 
-def print_config(robot_name, bodyfile_path, offset, joint_list, controller_name, wheeljoints, wheel_controller_name, output=None):
+def print_config(robot_name, bodyfile_path, offset, joint_list, controller_name, wheeljoints, wheel_controller_name,
+                 controller_type='effort', output=None):
     """
     Args:
         output (optional) : output file-stream. If None, sys.stdout is used
@@ -70,7 +71,9 @@ def print_config(robot_name, bodyfile_path, offset, joint_list, controller_name,
                                          'controllers': [
                                              {
                                                  'name': controller_name,
-                                                 'type': 'position',
+                                                 'type': controller_type,
+                                                 'P': 100,
+                                                 'D': 0.5,
                                                  'joints': sorted([j.jointName for j in joint_list if j.jointName not in wheeljoints])
                                              }
                                          ]
