@@ -2,9 +2,8 @@
 import argparse
 import sys
 
+from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
 import irsl_choreonoid.cnoid_util as iu
-
-from generate_utils import get_jointnamelist
 
 def print_config(joint_names, output=None):
     """
@@ -28,5 +27,6 @@ if __name__=='__main__':
     fname = args.bodyfile
 
     rbody = iu.loadRobot(fname)
-    joint_names = get_jointnamelist(rbody)
+    robot = RobotModel(rbody)
+    joint_names = robot.jointNames
     print_config(joint_names)

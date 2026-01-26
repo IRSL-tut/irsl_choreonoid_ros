@@ -6,11 +6,11 @@ import sys
 
 from distutils.util import strtobool
 
+from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
 import irsl_choreonoid.cnoid_util as iu
 
-from generate_utils import get_devicelist
 
-def print_config(robotname, urdffile,  controllers, device_list, demo_base_dir, worldsettings, output=None):
+def print_config(robotname, urdffile,  controllers, devices, demo_base_dir, worldsettings, output=None):
     """
     Args:
         output (optional) : output file-stream. If None, sys.stdout is used
@@ -36,7 +36,7 @@ def print_config(robotname, urdffile,  controllers, device_list, demo_base_dir, 
     <arg name="control_namespace" value="{robotname}" />
   </include>\n"""
     output_str +='  <group ns="$(arg robot_name)" >\n'
-    for idx, dev in enumerate(device_list):
+    for idx, dev in enumerate(devices):
         if dev.getName().lower().find('tof')>=0 or dev.getName().lower().find('ultra')>=0 :
             output_str += '    <node name="tof_converter_node_{}" pkg="irsl_choreonoid_ros" type="tof_converter_node.py" output="screen">\n'.format(idx)
             output_str += '      <remap from="input_points" to="{}/point_cloud"/>\n'.format(dev.getName())
@@ -70,13 +70,8 @@ if __name__=='__main__':
     args = parser.parse_args()
     fname = args.bodyfile
     rbody = iu.loadRobot(fname)
+    robot = RobotModel(rbody)
+    robotname = robot.robot.getModelName()
+    devices     = robot.deviceList
     
-    rbody.updateLinkTree()
-    rbody.initializePosition()
-    rbody.calcForwardKinematics()
-
-    robotname = rbody.getModelName()
-    
-    device_list = get_devicelist(rbody)
-    
-    print_config(robotname, args.urdffile, args.controllers, device_list, args.demo_base_dir, args.worldsettings)
+    print_config(robotname, args.urdffile, args.controllers, devices, args.demo_base_dir, args.worldsettings)

@@ -4,8 +4,8 @@ import pathlib
 import argparse
 import yaml
 
+from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
 import irsl_choreonoid.cnoid_util as iu
-from generate_utils import get_jointnamelist
 
 def print_config(robot_name, bodyfile_path, offset, joint_names, controller_name, 
                  controller_type='effort', output=None):
@@ -82,11 +82,12 @@ if __name__ == '__main__':
 
     fname = str(args.bodyfile)
     rbody = iu.loadRobot(fname)
-    joint_names = get_jointnamelist(rbody)
+    robot = RobotModel(rbody)
+    joint_names = robot.jointNames
 
     p = pathlib.Path(args.bodyfile)
     bodyfile_path = str(p.resolve())
-    robot_name = args.robotname if args.robotname != "" else rbody.getModelName()
+    robot_name = args.robotname if args.robotname != "" else robot.robot.getModelName()
 
     print_config(robot_name, bodyfile_path, [args.offsetx, args.offsety, args.offsetz],
                  joint_names, args.joint_controller_name)

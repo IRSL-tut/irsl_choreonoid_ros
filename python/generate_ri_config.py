@@ -5,9 +5,8 @@ import sys
 
 from distutils.util import strtobool
 
+from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
 import irsl_choreonoid.cnoid_util as iu
-
-from generate_utils import get_jointnamelist
 
 def print_config(robot_name, model_file, joint_names, controller_name, use_mobile, devices, output=None):
     """
@@ -74,20 +73,11 @@ if __name__=='__main__':
     args = parser.parse_args()
     fname = args.bodyfile
     rbody = iu.loadRobot(fname)
+    robot = RobotModel(rbody)
 
-    rbody.updateLinkTree()
-    rbody.initializePosition()
-    rbody.calcForwardKinematics()
-
-    joint_list = []
-
-    num_link = rbody.getNumLinks()
-    num_joint = rbody.getNumJoints()
-    num_device = rbody.getNumDevices()
-
-    robot_name  = rbody.getModelName()
+    robot_name  = robot.robot.getModelName()
     model_file  = f'file:///{os.path.abspath(args.bodyfile)}'
-    joint_names = get_jointnamelist(rbody)
+    joint_names = robot.jointNames
     use_mobile  = "" if args.use_wheel else "# "
-    devices     = [ rbody.getDevice(idx) for idx in range(num_device) ]
+    devices     = robot.deviceList
     print_config(robot_name, model_file, joint_names, args.controller_name, use_mobile, devices)
