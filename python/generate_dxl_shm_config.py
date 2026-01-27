@@ -12,7 +12,7 @@ def print_config(joint_names, output=None):
     if output is None:
         output = sys.stdout
     text = f"""\
-# This file is configlation for irsl_dynamixel_hardware_shm
+# This file is configuration for irsl_dynamixel_hardware_shm
 
 dynamixel_hardware_shm:
   port_name: /dev/ttyUSB0
