@@ -22,7 +22,7 @@ def print_config(robotname, urdffile,  controllers, devices, demo_base_dir, worl
   <arg name="demo_base_dir" default="{demo_base_dir}"/>
   <!-- choreonoid -->
   <arg name="worldsettings" default="{worldsettings}" />
-  <arg name="robot_name" default="{robotname}"/>'
+  <arg name="robot_name" default="{robotname}"/>
   <!-- ros_control -->
   <arg name="model" default="$(arg demo_base_dir)/{urdffile}"/>
   <arg name="controllers" default="{controllers}" />
@@ -30,7 +30,7 @@ def print_config(robotname, urdffile,  controllers, devices, demo_base_dir, worl
   <include file="$(find irsl_choreonoid_ros)/launch/run_sim_with_setup_cnoid.launch">
     <arg name="controllers" value="$(arg controllers)" />
     <arg name="setup_cnoid" value="$(arg demo_base_dir)/$(arg worldsettings)" />
-    <arg name="model_file" value="$(arg model)" />')
+    <arg name="model_file" value="$(arg model)" />)
     <arg name="model_namespace" value="{robotname}" />
     <arg name="control_namespace" value="{robotname}" />
   </include>\n"""
