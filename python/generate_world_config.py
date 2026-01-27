@@ -5,7 +5,6 @@ import argparse
 import yaml
 
 from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
-import irsl_choreonoid.cnoid_util as iu
 
 def print_config(robot_name, bodyfile_path, offset, joint_names, controller_name, 
                  controller_type='effort', output=None):
@@ -81,8 +80,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     fname = str(args.bodyfile)
-    rbody = iu.loadRobot(fname)
-    robot = RobotModel(rbody)
+    robot = RobotModel.loadModel(fname)
     joint_names = robot.jointNames
 
     p = pathlib.Path(args.bodyfile)

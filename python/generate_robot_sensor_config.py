@@ -5,7 +5,6 @@ import os
 import sys
 
 from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
-import irsl_choreonoid.cnoid_util as iu
 
 
 def print_config(devices, output=None):
@@ -34,8 +33,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     fname = args.bodyfile
-    rbody = iu.loadRobot(fname)
-    robot = RobotModel(rbody)
+    robot = RobotModel.loadModel(fname)
 
     devices = robot.deviceList
     print_config(devices)

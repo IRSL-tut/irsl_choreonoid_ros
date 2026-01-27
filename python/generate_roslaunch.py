@@ -7,7 +7,6 @@ import sys
 from distutils.util import strtobool
 
 from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
-import irsl_choreonoid.cnoid_util as iu
 
 
 def print_config(robotname, urdffile,  controllers, devices, demo_base_dir, worldsettings, output=None):
@@ -69,8 +68,7 @@ if __name__=='__main__':
     
     args = parser.parse_args()
     fname = args.bodyfile
-    rbody = iu.loadRobot(fname)
-    robot = RobotModel(rbody)
+    robot = RobotModel.loadModel(fname)
     robotname = robot.robot.getModelName()
     devices     = robot.deviceList
     

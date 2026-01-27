@@ -3,7 +3,6 @@ import argparse
 import sys
 
 from irsl_choreonoid.robot_util import RobotModelWrapped as RobotModel
-import irsl_choreonoid.cnoid_util as iu
 
 def list_string_esc(lst, offset=""):
     res = ""
@@ -51,8 +50,7 @@ if __name__=='__main__':
 
     args = parser.parse_args()
     fname = args.bodyfile
-    rbody = iu.loadRobot(fname)
-    robot = RobotModel(rbody)
+    robot = RobotModel.loadModel(fname)
 
     joint_names = robot.jointNames
     ###
