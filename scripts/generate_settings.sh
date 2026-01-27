@@ -72,14 +72,14 @@ URDFFILE=`echo $BODYFILE |sed 's/.body$/.urdf/g'`
 choreonoid_body2urdf $BODYFILE > $URDFFILE 2>/dev/null
 
 # generate RI settings
-rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile $BODYFILE --controller_name ${DEFAULT_CONTROLLER} --use_wheel $USE_WHEEL   > $RICONFIGFILE
+rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile "$BODYFILE" --controller_name ${DEFAULT_CONTROLLER} --use_wheel $USE_WHEEL   > $RICONFIGFILE
 
 # generate simulate setting
-rosrun irsl_choreonoid_ros generate_roslaunch.py --bodyfile $BODYFILE --controllers "${CONTROLLERS_STR}" --demo_base_dir `pwd` --urdffile $URDFFILE --worldsettings $WORLDSETTINGFILE > run_sim_robot.launch
-rosrun irsl_choreonoid_ros generate_world_config.py  --bodyfile $BODYFILE --joint_controller_name ${DEFAULT_CONTROLLER} > $WORLDSETTINGFILE
+rosrun irsl_choreonoid_ros generate_roslaunch.py --bodyfile "$BODYFILE" --controllers "${CONTROLLERS_STR}" --demo_base_dir `pwd` --urdffile $URDFFILE --worldsettings $WORLDSETTINGFILE > run_sim_robot.launch
+rosrun irsl_choreonoid_ros generate_world_config.py  --bodyfile "$BODYFILE" --joint_controller_name ${DEFAULT_CONTROLLER} > $WORLDSETTINGFILE
 
 # generate real robot setting files
-rosrun irsl_choreonoid_ros generate_robot_sensor_config.py --bodyfile $BODYFILE > sensor_config.yaml
-rosrun irsl_choreonoid_ros generate_dxl_shm_config.py --bodyfile $BODYFILE > dynamixel_config.yaml
-rosrun irsl_choreonoid_ros generate_ros_control.py    --bodyfile $BODYFILE --controller_name ${DEFAULT_CONTROLLER} > ros_control.yaml
-rosrun irsl_choreonoid_ros generate_jointlist.py      --bodyfile $BODYFILE > jointlist.yaml
+rosrun irsl_choreonoid_ros generate_robot_sensor_config.py --bodyfile "$BODYFILE" > sensor_config.yaml
+rosrun irsl_choreonoid_ros generate_dxl_shm_config.py --bodyfile "$BODYFILE" > dynamixel_config.yaml
+rosrun irsl_choreonoid_ros generate_ros_control.py    --bodyfile "$BODYFILE" --controller_name ${DEFAULT_CONTROLLER} > ros_control.yaml
+rosrun irsl_choreonoid_ros generate_jointlist.py      --bodyfile "$BODYFILE" > jointlist.yaml
