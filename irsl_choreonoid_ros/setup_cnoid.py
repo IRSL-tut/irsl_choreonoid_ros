@@ -153,7 +153,7 @@ class SetupCnoid(SetupCnoidOrg):
             if is_master_exists:
                 self.ros_enable = True
                 self._execROSScript(param=ros_)
-                ## WorldROS
+        ## WorldROS
         exist_, world_ros_ = _getDictValueExist(world_info, ('WorldROS', 'world_ros'))
         if exist_:
             if is_master_exists:
@@ -182,7 +182,8 @@ class SetupCnoid(SetupCnoidOrg):
                 file_ = _getDictValue(param, ('file', 'File', 'URI', 'uri', 'yaml', 'yaml_file'))
                 if file_ is not None:
                     fn = self._parseURL(file_)
-                    yparam = yaml.safe_load(open(fn))
+                    with open(fn) as f:
+                        yparam = yaml.safe_load(f)
                     name_ = _getDictValue(param, ('name', 'param', 'Name', 'Param', 'parameter_name', 'parameterName'))
                     if name_ is not None:
                         rospy.set_param(name_, yparam)
