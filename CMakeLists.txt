@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 cmake_policy(SET CMP0003 NEW)
 cmake_policy(SET CMP0057 NEW)
 
@@ -7,6 +7,42 @@ project(irsl_choreonoid_ros)
 #add_compile_options(-std=c++17)
 #set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
+if($ENV{ROS_VERSION} EQUAL 2)
+## ROS2 installed by ament/colcon
+find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+
+ament_python_install_package(irsl_choreonoid_ros)
+
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+  USE_SOURCE_PERMISSIONS
+)
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
+  USE_SOURCE_PERMISSIONS
+)
+install(DIRECTORY sample
+  DESTINATION share/${PROJECT_NAME}
+  USE_SOURCE_PERMISSIONS
+)
+#
+install(DIRECTORY python
+  DESTINATION lib/${PROJECT_NAME}
+  FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+install(DIRECTORY node
+  DESTINATION lib/${PROJECT_NAME}
+  FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+install(DIRECTORY scripts
+  DESTINATION lib/${PROJECT_NAME}
+  FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+ament_package()
+else()
+## ROS1 installed by catkin/catkin
 find_package(catkin REQUIRED)
 # find_package(choreonoid_ros REQUIRED)
 
@@ -45,3 +81,4 @@ install(DIRECTORY scripts
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_WRITE GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
   )
+endif()
