@@ -8,13 +8,14 @@ import rclpy
 from rclpy.node import Node
 import tf2_ros
 import message_filters
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import SingleThreadedExecutor
+
+# msgs
 from rclpy.duration import Duration
 from rclpy.time import Time
 from builtin_interfaces.msg import Duration as builtin_Duration
 from builtin_interfaces.msg import Time as builtin_Time
-from rclpy.executors import MultiThreadedExecutor
-
-# msgs
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from control_msgs.msg import JointTrajectoryControllerState
 from std_msgs.msg import Header as std_msgs_header
@@ -35,7 +36,7 @@ import cnoid.Body
 from cnoid.IRSLCoords import coordinates
 import irsl_choreonoid.cnoid_util as iu
 import irsl_choreonoid.robot_util as ru
-from .cnoid_ros_util import parseURLROS
+from .cnoid_ros2_util import parseURLROS
 #from irsl_choreonoid_ros.cnoid_ros_util import parseURLROS
 if iu.isInChoreonoid():
     ## in base
@@ -43,6 +44,17 @@ if iu.isInChoreonoid():
     import cnoid.Base as cbase
 
 import numpy as np
+class MobileBaseInterface(object):
+    """Interface for controlling locomotion of the robot
+    """
+    def __init__(self, info, robot=None, nodeName='mobile_interface', **kwargs):
+        pass
+    @property
+    def mobile_initialized(self):
+        return True
+    @property
+    def mobile_connected(self):
+        return True
 #>### not implement yet for ROS2
 #>#
 #># MobileBaseInterface
@@ -366,11 +378,13 @@ import numpy as np
 class JointInterface(object):
     """Interface for controlling joints of the robot
     """
-    def __init__(self, info, robot=None, **kwargs):
+    def __init__(self, info, nodeName='joint_interface', robot=None, **kwargs):
+        self._joint_node = rclpy.create_node(nodeName)
         self.joint_groups = {}
         self.default_group = None
         if 'joint_groups' in info:
             self.__joint_init(info['joint_groups'], robot)
+
     def __joint_init(self, group_list, robot):
         print('joint: {}'.format(group_list))
         if robot is not None:
@@ -381,12 +395,12 @@ class JointInterface(object):
             else:
                 name = group['name']
             if ('type' in group) and (group['type'] == 'action'):
-                jg = JointGroupAction(group, name, self.jointRobot)
+                jg = JointGroupAction(group, name, self.jointRobot, node=self._joint_node)
             elif ('type' in group) and (group['type'] == 'combined'):
-                jg = JointGroupCombined(group, name, self.jointRobot)
+                jg = JointGroupCombined(group, name, self.jointRobot, node=self._joint_node)
                 jg.setGroups(self.joint_groups)
             else:
-                jg = JointGroupTopic(group, name, self.jointRobot)
+                jg = JointGroupTopic(group, name, self.jointRobot, node=self._joint_node)
             self.joint_groups[name] = jg
             if self.default_group is None:
                 self.default_group = jg
@@ -585,9 +599,13 @@ class JointInterface(object):
         pass
 
 class JointGroupBase(object):
-    def __init__(self, name, robot=None):
+    def __init__(self, name, robot=None, node=None):
         self._robot = robot
         self._group_name = name
+        self._node = node
+
+    def get_logger(self):
+        return self._node.get_logger()
 
     def setJointNames(self, names):
         self.joint_names = names
@@ -640,8 +658,8 @@ class JointGroupBase(object):
         pass
 
 class JointGroupTopic(JointGroupBase):
-    def __init__(self, group, name, robot=None):
-        super().__init__(name, robot)
+    def __init__(self, group, name, robot=None, **kwargs):
+        super().__init__(name, robot, **kwargs)
 
         self.pub = TODO_FIX_ROS1_ROSPY.Publisher(group['topic'], JointTrajectory, queue_size=1)
 
@@ -698,16 +716,51 @@ class JointGroupTopic(JointGroupBase):
             TODO_FIX_ROS1_ROSPY.sleep(0.01)
 
 class JointGroupAction(JointGroupBase):
-    def __init__(self, group, name, robot=None):
-        super().__init__(name, robot)
+    def __init__(self, group, name, robot=None, **kwargs):
+        super().__init__(name, robot, **kwargs)
         self.setJointNames(group['joint_names'])
         ##
         ## self._client = actionlib.SimpleActionClient(group['topic'],  FollowJointTrajectoryAction)
-        self._client = ActionClient(self, FollowJointTrajectory, group['topic'])
-
+        self._client = ActionClient(self._node, FollowJointTrajectory, group['topic'])
+        self.sent_goals = {}
     @property
     def connected(self):  ## override
         return self._client.wait_for_server(1.0)
+
+    def feedback_callback(self, feedback):
+        pass
+
+    def goal_response_callback(self, future):
+        print('goal_response_callback: ', future)
+        goal_handle = future.result()
+        print('goal_handle :', goal_handle)
+        if not goal_handle.accepted:
+            self.get_logger().info('Goal rejected :(')
+            return
+        self.get_logger().info('Goal accepted :)')
+        ##
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future._send_goal_future = future
+        self._get_result_future.add_done_callback(self.get_result_callback)
+
+    def get_result_callback(self, future):
+        print('goal_result_callback: ', future)
+        result = future.result().result
+        status = future.result().status
+        if status == GoalStatus.STATUS_SUCCEEDED:
+            self.get_logger().info('Goal succeeded! Result: {0}'.format(result))
+        else:
+            self.get_logger().info('Goal failed with status: {0}'.format(status))
+        ## TODO: remove future._send_goal_future from self.sent_goals
+
+    def _sendGoal(self, goal):
+        print(goal)
+        tm = self._node.get_clock().now()
+        self._send_goal_future = self._client.send_goal_async(goal, feedback_callback=self.feedback_callback)
+        self._send_goal_future._msg = goal
+        self._send_goal_future._key = tm.nanoseconds
+        self.sent_goals[self._send_goal_future._key] = self._send_goal_future
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def sendAngles(self, tm=None):  ## override
         if tm is None:
@@ -718,11 +771,11 @@ class JointGroupAction(JointGroupBase):
 
         point = JointTrajectoryPoint()
         point.positions = [j.q for j in self.joints]
-        point.time_from_start = Duration(tm).to_msg()
+        point.time_from_start = Duration(seconds=tm).to_msg()
         _traj.points.append(point)
 
-        _goal = FollowJointTrajectoryGoal(trajectory=_traj, goal_time_tolerance=builtin_Time(nanosec=1000*1000))
-        self._client.send_goal(_goal)
+        _goal = FollowJointTrajectory.Goal(trajectory=_traj, goal_time_tolerance=builtin_Duration(nanosec=1000*1000))
+        self._sendGoal(_goal)
 
     def sendAnglesSequence(self, vec_list, tm_list):  ## override
         header_ = std_msgs_header(stamp=builtin_Time())
@@ -732,10 +785,10 @@ class JointGroupAction(JointGroupBase):
             point = JointTrajectoryPoint()
             point.positions = vec
             time_ += tm
-            point.time_from_start = Duration(tm).to_msg()
+            point.time_from_start = Duration(seconds=tm).to_msg()
             _traj.points.append(point)
-        _goal = FollowJointTrajectoryGoal(trajectory=_traj, goal_time_tolerance=builtin_Time(nanosec=1000*1000))
-        self._client.send_goal(_goal)
+        _goal = FollowJointTrajectory.Goal(trajectory=_traj, goal_time_tolerance=builtin_Duration(nanosec=1000*1000))
+        self._sendGoal(_goal)
 
     def isFinished(self):  ## override
         ## TODO update for ROS2
@@ -756,8 +809,8 @@ class JointGroupAction(JointGroupBase):
         self._client.cancel_all_goals()
 
 class JointGroupCombined(JointGroupBase):
-    def __init__(self, group, name, robot=None):
-        super().__init__(name, robot)
+    def __init__(self, group, name, robot=None, **kwargs):
+        super().__init__(name, robot, **kwargs)
         self.group_names = group['groups']
 
     def setGroups(self, dict_group):
@@ -802,7 +855,8 @@ class JointGroupCombined(JointGroupBase):
 class DeviceInterface(object):
     """Interface for receiving data from sensors on the robot
     """
-    def __init__(self, info, robot=None, **kwargs):
+    def __init__(self, info, nodeName='device_interface', robot=None, **kwargs):
+        self._device_node = rclpy.create_node(nodeName)
         self.devices = {}
         if 'devices' in info:
             self.__device_init(info['devices'], robot)
@@ -823,9 +877,9 @@ class DeviceInterface(object):
         for dev in device_list:
             if 'class' in dev:
                 cls = eval('{}'.format(dev['class']))
-                self.devices[dev['name']] = cls(dev, robot=self.instanceOfBody)
+                self.devices[dev['name']] = cls(dev, robot=self.instanceOfBody, node=self._device_node)
             else:
-                self.devices[dev['name']] = RosDevice(dev, robot=self.instanceOfBody)
+                self.devices[dev['name']] = RosDevice(dev, robot=self.instanceOfBody, node=self._device_node)
 
     @property
     def device_initialized(self):
@@ -1023,8 +1077,9 @@ class DeviceInterface(object):
             return False
 
 class RosDeviceBase(object):
-    def __init__(self, dev_dict, robot=None):
+    def __init__(self, dev_dict, robot=None, node=None, queueSize=10):
         super().__init__()
+        self._node = node
         self.robot_callback = None
         self.__robot = robot
         self.topic = dev_dict['topic']
@@ -1039,6 +1094,7 @@ class RosDeviceBase(object):
         self.current_msg = None
         self.timeout = None
         self.sub = None
+        self.queueSize = queueSize
 
     @property
     def connected(self):
@@ -1056,13 +1112,14 @@ class RosDeviceBase(object):
         ## exec('class {}Wrapped({}):\n  __slots__ = ("header")')
         ## self.msg_wrapped = eval('{}Wrapped'.format(tp[1]))
     def subscribe(self):
-        self.sub = TODO_FIX_ROS1_ROSPY.Subscriber(self.topic, self.msg, self.callback)
+        self.sub = self._node.create_subscription(self.msg, self.topic, self.callback, self.queueSize)
+        # self.sub = TODO_FIX_ROS1_ROSPY.Subscriber(self.topic, self.msg, self.callback)
 
     def callback(self, msg):
         #if not hasattr(msg, 'header'):
         #    setattr(msg, 'header', std_msgs_header(stamp=TODO_FIX_ROS1_ROSPY.get_rostime(), frame_id='add_by_ri'))
         #    ## msg.header = std_msgs_header(stamp=TODO_FIX_ROS1_ROSPY.get_rostime(), frame_id='add_by_ri')
-        self.msg_time = TODO_FIX_ROS1_ROSPY.get_rostime()
+        self.msg_time = self._node.get_clock().now()
         if self.robot_callback is not None:
             self.robot_callback(msg)
         self.current_msg = msg
@@ -1083,7 +1140,7 @@ class RosDeviceBase(object):
         if timeout is None:
             self.timeout = None
         else:
-            self.timeout = TODO_FIX_ROS1_ROSPY.get_rostime() + TODO_FIX_ROS1_ROSPY.Duration.from_sec(timeout)
+            self.timeout = self._node.get_clock().now() + Duration(seconds=timeout)
 
     def _pre_wait_next(self, timeout):
         self._pre_wait(timeout)
@@ -1091,11 +1148,11 @@ class RosDeviceBase(object):
         self.current_msg = None
 
     def _fetch_data(self, clear=False):
-        while ( self.timeout is None ) or ( self.timeout >= TODO_FIX_ROS1_ROSPY.get_rostime() ):
+        while ( self.timeout is None ) or ( self.timeout >=  self._node.get_clock().now() ):
             if self.current_msg is not None:
                 return self.data(clear)
             else:
-                TODO_FIX_ROS1_ROSPY.sleep(0.002)
+                time.sleep(0.002) ## TODO
 
     def _unsubscribe(self):
         ## unsubscribe
@@ -1126,21 +1183,21 @@ class RosDeviceBase(object):
 
 # generic device (using type: tag in robotinterface.yaml)
 class RosDevice(RosDeviceBase):
-    def __init__(self, dev_dict, robot=None):
-        super().__init__(dev_dict, robot)
+    def __init__(self, dev_dict, robot=None, **kwargs):
+        super().__init__(dev_dict, robot=robot, **kwargs)
         self.parseType(dev_dict['type'])
         self.subscribe()
 # specific device (using class: tag in robotinterface.yaml)
 class StringDevice(RosDeviceBase):
-    def __init__(self, dev_dict, robot=None):
-        super().__init__(dev_dict, robot)
+    def __init__(self, dev_dict, robot=None, **kwargs):
+        super().__init__(dev_dict, robot=robot, **kwargs)
         import std_msgs.msg
         self.msg = std_msgs.msg.String
         self.subscribe()
 
 class JointState(RosDeviceBase):
-    def __init__(self, dev_dict, robot=None):
-        super().__init__(dev_dict, robot)
+    def __init__(self, dev_dict, robot=None, **kwargs):
+        super().__init__(dev_dict, robot=robot, **kwargs)
         import sensor_msgs.msg
         self.msg = sensor_msgs.msg.JointState
         self.robot_callback = self.joint_callback
@@ -1155,19 +1212,19 @@ class JointState(RosDeviceBase):
                 lk.u  = msg.effort[idx]
 
     def joint_callback(self, msg):
-        #print('js: {} {}'.format(rtime, msg))
+        #print(f'js: {msg}')
         self.joint_msg_to_robot(msg)
 
 class JointTrajectoryState(RosDeviceBase): ## just store reference
-    def __init__(self, dev_dict, robot=None):
-        super().__init__(dev_dict, robot)
+    def __init__(self, dev_dict, robot=None, **kwargs):
+        super().__init__(dev_dict, robot=robot, **kwargs)
         from control_msgs.msg import JointTrajectoryControllerState as JState_msg
         self.msg = JState_msg
         self.subscribe()
 
 class JointTrajectoryStateCallback(JointTrajectoryState):
-    def __init__(self, dev_dict, robot=None):
-        super().__init__(dev_dict, robot)
+    def __init__(self, dev_dict, robot=None, **kwargs):
+        super().__init__(dev_dict, robot=robot, **kwargs)
         self.robot_callback = self.joint_callback
 
     def joint_msg_to_robot(self, msg):
@@ -1281,7 +1338,7 @@ class JointTrajectoryStateCallback(JointTrajectoryState):
 #
 # RobotInterface
 #
-class RobotInterface(Node, JointInterface, DeviceInterface, MobileBaseInterface):
+class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
     """Interface for controllring robot (inheriting classes JointInterface, DeviceInterface and MobileBaseInterface)
 
     At a instance of this interface, all methods in JointInterface, DeviceInterface and MobileBaseInterface can be used.
@@ -1351,35 +1408,56 @@ class RobotInterface(Node, JointInterface, DeviceInterface, MobileBaseInterface)
 #>        self.__connection=connect_
 
     def __init__(self, file_name, node_name='robot_interface', anonymous=False, connection_wait=3.0, connection=True):
+        self.executor = None
+        ## load settings
+        with open(parseURLROS(file_name)) as f:
+            self.info = yaml.safe_load(f)
+        self.__load_robot()
+        #
+        self.__connection=False
+        if not connection:
+            return
         ## ROS setup
         if not rclpy.ok():
             rclpy.init()##
-        Node.__init__(self, node_name)
         ## Interface(ROS) setup
-        JointInterface.__init__(self, self.info)
-        # DeviceInterface.__init__(self, self.info)
-        # MobileBaseInterface.__init__(self, self.info)
+        JointInterface.__init__(self, self.info, nodeName=f'{node_name}_ji')
+        DeviceInterface.__init__(self, self.info, nodeName=f'{node_name}_di')
+        MobileBaseInterface.__init__(self, self.info, nodeName=f'{node_name}_mi')
         ## wait connected
         ## TODO
 
     def background_spin(self):
         """background(Threading) spin using single-thread / callback is executed in Thread
         """
-        self.spin_thread = threading.Thread(target=rclpy.spin, args=(self, ))
-        self.spin_thread.start()
+        if self.executor is None:
+            self.executor = SingleThreadedExecutor()
+            self.executor.add_node(self._joint_node)
+            self.executor.add_node(self._device_node)
+            self.spin_thread = threading.Thread(target=self.executor.spin)
+            self.spin_thread.start()
 
     def background_spin_multi(self):
         """background(Threading) spin using multi-thread / callback is executed in Thread
         """
-        executor = MultiThreadedExecutor()
-        executor.add_node(self)
-        spin_thread = threading.Thread(target=executor.spin)
-        spin_thread.start()
+        if self.executor is None:
+            self.executor = MultiThreadedExecutor()
+            self.executor.add_node(self._joint_node)
+            self.executor.add_node(self._device_node)
+            self.spin_thread = threading.Thread(target=self.executor.spin)
+            self.spin_thread.start()
 
-    def spin_once(self, timeout_sec=0.001):
+    def stop_spin(self):
+        """not implemented yet
+        """
+        pass
+
+    def spin_once(self, timeout_sec=0):
         """spin / callback is executed in main-thread
         """
-        rclpy.spin_once(self, timeout_sec=timeout_sec)
+        if self.executor is None:
+            rclpy.spin_once(self._joint_node, timeout_sec=0)
+            rclpy.spin_once(self._device_node, timeout_sec=timeout_sec)
 
     def __load_robot(self):
         if 'robot_model' in self.info:
