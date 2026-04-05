@@ -1,6 +1,8 @@
 # from tf import transformations
 import std_msgs.msg
 import geometry_msgs.msg
+import sensor_msgs.msg
+
 from std_msgs.msg import MultiArrayLayout, MultiArrayDimension
 from std_msgs.msg import  (ByteMultiArray,
                            Float32MultiArray, Float64MultiArray,
