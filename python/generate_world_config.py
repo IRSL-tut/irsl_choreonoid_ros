@@ -22,7 +22,7 @@ def print_config(robot_name, bodyfile_path, offset, joint_names, controller_name
                         'initial_coords': {'pos': offset},
                         'initial_joint_angles': [0 for _ in range(num_joint)],
                         'fix': True,
-                        'BodyROSItem': {'name_space': robot_name},
+                        'BodyROSItem': {'name_space': robot_name, 'joint_state_publication': False},
                         'ROSControlItem': {'name_space': robot_name}
                     },
                     'world':
