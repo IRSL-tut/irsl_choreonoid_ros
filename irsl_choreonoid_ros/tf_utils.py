@@ -14,6 +14,10 @@ class TransformListener(tf.TransformListener):
         Args:
             *args: Variable length argument list passed to tf.TransformListener class.
             **kwargs: Arbitrary keyword arguments passed to tf.TransformListener class.
+
+        Notes:
+            interpolate (bool, default=True) :
+            cache_time (float, optional) : time of cache
         """
         super().__init__(*args, **kwargs)
 

@@ -30,9 +30,9 @@ def print_config(robotname, urdffile,  controllers, devices, demo_base_dir, worl
   <include file="$(find irsl_choreonoid_ros)/launch/run_sim_with_setup_cnoid.launch">
     <arg name="controllers" value="$(arg controllers)" />
     <arg name="setup_cnoid" value="$(arg demo_base_dir)/$(arg worldsettings)" />
-    <arg name="model_file" value="$(arg model)" />)
-    <arg name="model_namespace" value="{robotname}" />
-    <arg name="control_namespace" value="{robotname}" />
+    <arg name="model_file" value="$(arg model)" />
+    <arg name="model_namespace" value="/{robotname}_ros" />
+    <arg name="control_namespace" value="/{robotname}" />
   </include>\n"""
     output_str +='  <group ns="$(arg robot_name)" >\n'
     for idx, dev in enumerate(devices):
@@ -65,11 +65,11 @@ if __name__=='__main__':
     parser.add_argument('--urdffile', type=str, required=True)
     parser.add_argument('--roscontrolfile', type=str)
     parser.add_argument('--worldsettings', type=str)
-    
+
     args = parser.parse_args()
     fname = args.bodyfile
     robot = RobotModel.loadModel(fname)
     robotname = robot.robot.getModelName()
     devices     = robot.deviceList
-    
+
     print_config(robotname, args.urdffile, args.controllers, devices, args.demo_base_dir, args.worldsettings)

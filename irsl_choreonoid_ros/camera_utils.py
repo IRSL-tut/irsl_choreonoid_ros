@@ -2,10 +2,20 @@ import image_geometry
 from sensor_msgs.msg import RegionOfInterest
 import numpy as np
 import irsl_choreonoid.make_shapes as mkshapes
+import cnoid.Body
 
 class PinholeCameraModel(image_geometry.PinholeCameraModel):
-    def __init__(self):
-        pass
+    """
+    Examples:
+    >>> import sensor_msgs.msg
+    >>> msg = sensor_msgs.msg.CameraInfo()
+    >>> cm = PinhoneCameraModel(msg)
+    """
+    def __init__(self, camera_info=None):
+        super().__init__()
+        if camera_info is not None:
+            self.fromCameraInfo(camera_info)
+            self._msg = camera_info
 
     def generatePointsRaw(self, depthImageCv, transform=None, colorImageCv=None, threshold=0.1, ROI=None):
         """
@@ -90,6 +100,20 @@ class PinholeCameraModel(image_geometry.PinholeCameraModel):
             colors = None
         return mkshapes.makePoints(points, colors=colors, **kwargs)
 
+    def generateCnoidCamera(self):
+        """
+        generate Camera-model in Choreonoid
+
+        Returns:
+            cnoid.Body.Camera : Camera-model in Choreonoid
+        """
+        cam=cnoid.Body.Camera()
+        cam.setResolutionX(self.width)
+        cam.setResolutionY(self.height)
+        cam.setOpticalFrame(cnoid.Body.Camera.CV)
+        cam.setFieldOfView(self.fovX())
+        return cam
+
 def cameraModelFromCameraInfo(camera_info):
     """
     Generate Camera-model from a CameraInfo message
@@ -101,6 +125,4 @@ def cameraModelFromCameraInfo(camera_info):
         PinholeCameraModel: An instance of PinholeCameraModel initialized with 
             the parameters from the provided CameraInfo message.
     """
-    pcm = PinholeCameraModel()
-    pcm.from_camera_info(camera_info)
-    return pcm
+    return PinholeCameraModel(camera_info)

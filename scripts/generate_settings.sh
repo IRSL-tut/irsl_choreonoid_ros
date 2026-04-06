@@ -63,13 +63,17 @@ if [ ! -e "$BODYFILE" ]; then
     exit
 fi
 
+abs_body_file=$(basename $(readlink -f $BODYFILE))
+abs_body_dir=$(dirname $(readlink -f $BODYFILE))
+
 set -x
 
 ROBOTNAME=`python3 -c "import cnoid.Body;import sys;print(cnoid.Body.BodyLoader().load('$BODYFILE').getModelName())"`
 
 URDFFILE=`echo $BODYFILE |sed 's/.body$/.urdf/g'`
 
-choreonoid_body2urdf $BODYFILE > $URDFFILE 2>/dev/null
+mkdir -p /tmp/meshes
+choreonoid_body2urdf $BODYFILE -O $URDFFILE --mesh-file-prefix /tmp/meshes/ --mesh-url-prefix file:///tmp/meshes/ --export-devices
 
 # generate RI settings
 rosrun irsl_choreonoid_ros generate_ri_config.py --bodyfile "$BODYFILE" --controller_name ${DEFAULT_CONTROLLER} --use_wheel $USE_WHEEL   > $RICONFIGFILE
