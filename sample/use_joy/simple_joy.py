@@ -40,7 +40,7 @@ class RobotControl(JoyCameraCoords):
         ##
         ret, loop = self.solveIK(coordinates(self.di_cds.pos, self.di_cds.rot))
         ##
-        if use_yaw:
+        if self.use_yaw:
             yaw = self.msg.axes[JoyParser.AXIS1_Z] * 0.04
             if yaw != 0.0:
                 ang = self.robot.jointAngle('LINK_0')
@@ -125,5 +125,6 @@ class RobotControl(JoyCameraCoords):
         self.robot.setAngleMap({self.HAND_LINK: self.open_angle})
         self.ri.sendAngleVector(self.robot.angleVector(), grasptime, 'gripper')
 
+#exec(open('/choreonoid_ws/install/share/irsl_choreonoid/sample/irsl_import.py').read())
 #exec(open('simple_joy.py').read())
 #rc = RobotControl()
