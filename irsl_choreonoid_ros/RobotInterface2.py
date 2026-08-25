@@ -731,9 +731,9 @@ class JointGroupAction(JointGroupBase):
         pass
 
     def goal_response_callback(self, future):
-        print('goal_response_callback: ', future)
+        #print('goal_response_callback: ', future)
         goal_handle = future.result()
-        print('goal_handle :', goal_handle)
+        #print('goal_handle :', goal_handle)
         if not goal_handle.accepted:
             self.get_logger().info('Goal rejected :(')
             return
@@ -744,7 +744,7 @@ class JointGroupAction(JointGroupBase):
         self._get_result_future.add_done_callback(self.get_result_callback)
 
     def get_result_callback(self, future):
-        print('goal_result_callback: ', future)
+        #print('goal_result_callback: ', future)
         result = future.result().result
         status = future.result().status
         if status == GoalStatus.STATUS_SUCCEEDED:
@@ -754,7 +754,7 @@ class JointGroupAction(JointGroupBase):
         ## TODO: remove future._send_goal_future from self.sent_goals
 
     def _sendGoal(self, goal):
-        print(goal)
+        #print("_sendGoal", goal)
         tm = self._node.get_clock().now()
         self._send_goal_future = self._client.send_goal_async(goal, feedback_callback=self.feedback_callback)
         self._send_goal_future._msg = goal
@@ -1113,7 +1113,6 @@ class RosDeviceBase(object):
         ## self.msg_wrapped = eval('{}Wrapped'.format(tp[1]))
     def subscribe(self):
         self.sub = self._node.create_subscription(self.msg, self.topic, self.callback, self.queueSize)
-        # self.sub = TODO_FIX_ROS1_ROSPY.Subscriber(self.topic, self.msg, self.callback)
 
     def callback(self, msg):
         #if not hasattr(msg, 'header'):
@@ -1628,7 +1627,7 @@ class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
             for idx, nm in enumerate(val.joint_names):
                 lk = self.instanceOfJointBody.joint(nm)
                 if lk:
-                    lk.q = val.desired.positions[idx]
+                    lk.q = val.reference.positions[idx]
         ret = self.instanceOfJointBody.angleVector()
         self.instanceOfJointBody.angleVector(tmp)# restore
         return ret
