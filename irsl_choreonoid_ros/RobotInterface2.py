@@ -37,6 +37,7 @@ from cnoid.IRSLCoords import coordinates
 import irsl_choreonoid.cnoid_util as iu
 import irsl_choreonoid.robot_util as ru
 from .cnoid_ros2_util import parseURLROS
+from .one_shot import OneShotSubscriber, OneShotSyncSubscriber
 #from irsl_choreonoid_ros.cnoid_ros_util import parseURLROS
 if iu.isInChoreonoid():
     ## in base
@@ -720,9 +721,9 @@ class JointGroupAction(JointGroupBase):
         super().__init__(name, robot, **kwargs)
         self.setJointNames(group['joint_names'])
         ##
-        ## self._client = actionlib.SimpleActionClient(group['topic'],  FollowJointTrajectoryAction)
         self._client = ActionClient(self._node, FollowJointTrajectory, group['topic'])
         self.sent_goals = {}
+        self.isActive = False
     @property
     def connected(self):  ## override
         return self._client.wait_for_server(1.0)
@@ -731,26 +732,33 @@ class JointGroupAction(JointGroupBase):
         pass
 
     def goal_response_callback(self, future):
-        #print('goal_response_callback: ', future)
+        print('goal_response_callback: ', future)
         goal_handle = future.result()
         #print('goal_handle :', goal_handle)
         if not goal_handle.accepted:
             self.get_logger().info('Goal rejected :(')
+            self.isActive = False
             return
         self.get_logger().info('Goal accepted :)')
         ##
         self._get_result_future = goal_handle.get_result_async()
         self._get_result_future._send_goal_future = future
+        self._get_result_future._goal_handle = goal_handle
         self._get_result_future.add_done_callback(self.get_result_callback)
 
     def get_result_callback(self, future):
-        #print('goal_result_callback: ', future)
+        print('goal_result_callback: ', future)
         result = future.result().result
         status = future.result().status
         if status == GoalStatus.STATUS_SUCCEEDED:
             self.get_logger().info('Goal succeeded! Result: {0}'.format(result))
+        elif status == GoalStatus.STATUS_ABORTED:
+            self.get_logger().warn('Action ABORTED')
+        elif status == GoalStatus.STATUS_CANCELED:
+            self.get_logger().warn('Action CANCELED')
         else:
-            self.get_logger().info('Goal failed with status: {0}'.format(status))
+            self.get_logger().info(f'Goal failed with status: {status}')
+        self.isActive = False
         ## TODO: remove future._send_goal_future from self.sent_goals
 
     def _sendGoal(self, goal):
@@ -760,7 +768,9 @@ class JointGroupAction(JointGroupBase):
         self._send_goal_future._msg = goal
         self._send_goal_future._key = tm.nanoseconds
         self.sent_goals[self._send_goal_future._key] = self._send_goal_future
+        self.isActive = True
         self._send_goal_future.add_done_callback(self.goal_response_callback)
+        print('send_goal_future: ', self._send_goal_future)
 
     def sendAngles(self, tm=None):  ## override
         if tm is None:
@@ -791,10 +801,10 @@ class JointGroupAction(JointGroupBase):
         self._sendGoal(_goal)
 
     def isFinished(self):  ## override
-        ## TODO update for ROS2
-        return self._client.simple_state != actionlib.SimpleGoalState.ACTIVE
+        return not self.isActive
 
     def waitUntilFinish(self, timeout=None):  ## override
+        if self.isActive:
         ## TODO update for ROS2
         if timeout is None:
             timeout = TODO_FIX_ROS1_ROSPY.Duration(1000000000.0)
@@ -1673,7 +1683,7 @@ class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
             res = one.waitResults(5)
 
         """
-        return OneShotSubscriber(topic, msg, size)
+        return OneShotSubscriber(self._device_node, topic, msg, size)
 
     def oneShotSyncSubscriber(self, topics, msgs, size=1, sync_message_queue_size=100, sync_slop=0.02):
         """"
@@ -1693,7 +1703,8 @@ class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
 
 
         """
-        return OneShotSyncSubscriber(topics, msgs, size, sync_message_queue_size, sync_slop)
+        return OneShotSyncSubscriber(
+            self._device_node, topics, msgs, size, sync_message_queue_size, sync_slop)
 
     def getRosDevice(self, topic, msg, name=None):
         """
