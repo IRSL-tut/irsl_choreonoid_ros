@@ -805,14 +805,14 @@ class JointGroupAction(JointGroupBase):
 
     def waitUntilFinish(self, timeout=None):  ## override
         if self.isActive:
-        ## TODO update for ROS2
-        if timeout is None:
-            timeout = TODO_FIX_ROS1_ROSPY.Duration(1000000000.0)
-        else:
-            if timeout <= 0.0:
-                timeout = 0.001
-            timeout = TODO_FIX_ROS1_ROSPY.Duration(timeout)
-        self._client.wait_for_result(timeout)
+            ## TODO update for ROS2
+            if timeout is None:
+                timeout = TODO_FIX_ROS1_ROSPY.Duration(1000000000.0)
+            else:
+                if timeout <= 0.0:
+                    timeout = 0.001
+                timeout = TODO_FIX_ROS1_ROSPY.Duration(timeout)
+            self._client.wait_for_result(timeout)
 
     def cancel(self):
         ## TODO update for ROS2
@@ -1089,6 +1089,9 @@ class DeviceInterface(object):
 class RosDeviceBase(object):
     def __init__(self, dev_dict, robot=None, node=None, queueSize=10):
         super().__init__()
+        if node is None:
+            raise ValueError('A ROS2 node is required')
+        self.queueSize = queueSize
         self._node = node
         self.robot_callback = None
         self.__robot = robot
@@ -1104,19 +1107,21 @@ class RosDeviceBase(object):
         self.current_msg = None
         self.timeout = None
         self.sub = None
-        self.queueSize = queueSize
 
     @property
     def connected(self):
-        if self.sub is not None and self.sub.get_num_connections() > 0:
+        if self.sub is not None and self.sub.get_publisher_count() > 0:
             return True
         return False
 
     def parseType(self, type_str):
-        if type(type_str) is str:
-            tp = type_str.split('/')
-            exec('from {}.msg import {}'.format(tp[0], tp[1]), locals(), globals())
-            self.msg = eval('{}'.format(tp[1]))
+        #>if type(type_str) is str:
+        #>    tp = type_str.split('/')
+        #>    exec('from {}.msg import {}'.format(tp[0], tp[1]), locals(), globals())
+        #>    self.msg = eval('{}'.format(tp[1]))
+        if isinstance(type_str, str):
+            package_name, message_name = type_str.split('/', 1)
+            self.msg = getattr(importlib.import_module(package_name + '.msg'), message_name)
         else:
             self.msg = type_str
         ## exec('class {}Wrapped({}):\n  __slots__ = ("header")')
@@ -1157,16 +1162,21 @@ class RosDeviceBase(object):
         self.current_msg = None
 
     def _fetch_data(self, clear=False):
-        while ( self.timeout is None ) or ( self.timeout >=  self._node.get_clock().now() ):
+        while rclpy.ok() and ((self.timeout is None) or
+                              (self.timeout >= self._node.get_clock().now())):
             if self.current_msg is not None:
                 return self.data(clear)
             else:
-                time.sleep(0.002) ## TODO
+                if self._node.executor is None:
+                    rclpy.spin_once(self._node, timeout_sec=0.002)
+                else:
+                    self._node.executor.spin_once(timeout_sec=0.002)
 
     def _unsubscribe(self):
         ## unsubscribe
-        self.sub.unregister()
-        self.sub = None
+        if self.sub is not None:
+            self._node.destroy_subscription(self.sub)
+            self.sub = None
 
     def _remove(self):
         self.msg_time    = None
@@ -1246,104 +1256,127 @@ class JointTrajectoryStateCallback(JointTrajectoryState):
     def joint_callback(self, msg):
         #print('js: {} {}'.format(rtime, msg))
         self.joint_msg_to_robot(msg)
-#> not implemented yet for ROS2
-#>class OneShotSubscriber(RosDeviceBase):
-#>    """
-#>    Subscribe just N messages
-#>
-#>    """
-#>    def __init__(self, topic, msg, size=1, **kwargs):
-#>        """"
-#>        Args:
-#>            topic ( str ) : Name of Topic
-#>            msg ( class ) : Class instance of message to subscribe
-#>            size (int, default = 1 ) : Size of messages to be subscribed
-#>
-#>        """
-#>        self.topic = topic
-#>        self.msg = msg
-#>        self.size = size
-#>        self.msg_time = None
-#>        self.current_msg = None
-#>        self.results = [] ## size
-#>        self.sub = rospy.Subscriber(self.topic, self.msg, self.callback, **kwargs)
-#>
-#>    def callback(self, msg):
-#>        self.msg_time = rospy.get_rostime()
-#>        self.current_msg = msg
-#>        self.results.append(msg) ##
-#>        if len(self.results) >= self.size:
-#>            self._unsubscribe()
-#>
-#>    def waitResults(self, timeout=None):
-#>        """"Waiting N results
-#>
-#>        Args:
-#>            topic ( str ) : Name of Topic
-#>            msg ( class ) : Class instance of message to subscribe
-#>            size (int, default = 1 ) : Size of messages to be subscribed
-#>
-#>        Returns:
-#>            list( ros_message ) : Subscribed messages. If timeout occurs, None is returned.
-#>
-#>        """
-#>        self._pre_wait(timeout)
-#>        while ( self.timeout is None ) or ( self.timeout >= rospy.get_rostime() ):
-#>            if len(self.results) >= self.size:
-#>                return self.results
-#>            else:
-#>                rospy.sleep(0.002)
-#>
-#>
-#>class OneShotSyncSubscriber(RosDeviceBase):
-#>    """
-#>    Subscribe just N sync messages
-#>
-#>    """
-#>    def __init__(self, topics, msgs, size=1, sync_message_queue_size=100, sync_slop=0.02):
-#>        """"
-#>        Args:
-#>            topics ( list of str ) : Name of Topic
-#>            msgs ( list of class ) : Class instance of message to subscribe
-#>            size (int, default = 1 ) : Size of messages to be subscribed
-#>            sync_message_queue_size ( int, default = 100 ) : Size of message queue
-#>            sync_slop ( float, default = 0.02 ) :  Delay with which messages can be synchronized in seconds).
-#>
-#>        """
-#>        self.topics = topics
-#>        self.msgs = msgs
-#>        self.size = size
-#>        self.msg_time = None
-#>        self.current_msg = None
-#>        self.results = [] ## size
-#>        self.filter_subs = [ message_filters.Subscriber(topic, msg) for topic, msg in zip(topics, msgs) ]
-#>        self.ts = message_filters.ApproximateTimeSynchronizer(self.filter_subs, sync_message_queue_size, sync_slop)
-#>        self.ts.registerCallback(self.callback)
-#>
-#>    def callback(self, *msgs):
-#>        self.msg_time = rospy.get_rostime()
-#>        self.current_msg = msgs
-#>        self.results.append(msgs) ##
-#>        if len(self.results) >= self.size:
-#>            _ = [sub.sub.unregister() for sub in self.filter_subs]
-#>
-#>    def waitResults(self, timeout=None):
-#>        """"Waiting N results
-#>
-#>        Args:
-#>            timeout ( float, default = None ) : Time for timeout
-#>
-#>        Returns:
-#>            None
-#>
-#>        """
-#>        self._pre_wait(timeout)
-#>        while ( self.timeout is None ) or ( self.timeout >= rospy.get_rostime() ):
-#>            if len(self.results) >= self.size:
-#>                return self.results
-#>            else:
-#>                rospy.sleep(0.002)
-#>
+
+class OneShotSubscriber(RosDeviceBase):
+    """
+    Subscribe just N messages
+
+    """
+    def __init__(self, node, topic, msg, size=1, queueSize=10):
+        """"
+        Args:
+            topic ( str ) : Name of Topic
+            msg ( class ) : Class instance of message to subscribe
+            size (int, default = 1 ) : Size of messages to be subscribed
+
+        """
+        if size < 1:
+            raise ValueError('size must be at least 1')
+        self.queueSize = queueSize
+        self._node = node
+        #
+        self.topic = topic
+        # self.name = ''
+        self.rate = None
+        self.msg_time = None
+        self.current_msg = None
+        self.timeout = None
+        self.msg = msg
+        ##
+        self.size = size
+        self.results = [] ## size
+        self.sub = self._node.create_subscription(self.msg, self.topic, self.callback, queueSize)
+
+    def callback(self, msg):
+        self.msg_time = self._node.get_clock().now()
+        self.current_msg = msg
+        self.results.append(msg) ##
+        if len(self.results) >= self.size:
+            self._unsubscribe()
+
+    def waitResults(self, timeout=None):
+        """"Waiting N results
+
+        Args:
+            topic ( str ) : Name of Topic
+            msg ( class ) : Class instance of message to subscribe
+            size (int, default = 1 ) : Size of messages to be subscribed
+
+        Returns:
+            list( ros_message ) : Subscribed messages. If timeout occurs, None is returned.
+
+        """
+        self._pre_wait(timeout)
+        while rclpy.ok() and ((self.timeout is None) or
+                              (self.timeout >= self._node.get_clock().now())):
+            if len(self.results) >= self.size:
+                return self.results
+            else:
+                if self._node.executor is None:
+                    rclpy.spin_once(self._node, timeout_sec=0.002)
+                else:
+                    self._node.executor.spin_once(timeout_sec=0.002)
+
+class OneShotSyncSubscriber(RosDeviceBase):
+    """
+    Subscribe just N sync messages
+
+    """
+    def __init__(self, node, topics, msgs, size=1, sync_message_queue_size=100,
+                 sync_slop=0.02, queueSize=10):
+        """"
+        Args:
+            topics ( list of str ) : Name of Topic
+            msgs ( list of class ) : Class instance of message to subscribe
+            size (int, default = 1 ) : Size of messages to be subscribed
+            sync_message_queue_size ( int, default = 100 ) : Size of message queue
+            sync_slop ( float, default = 0.02 ) :  Delay with which messages can be synchronized in seconds).
+
+        """
+        if size < 1:
+            raise ValueError('size must be at least 1')
+        if len(topics) != len(msgs):
+            raise ValueError('topics and msgs must have the same length')
+        self._node = node
+        self.topics = topics
+        self.msgs = msgs
+        self.size = size
+        self.msg_time = None
+        self.current_msg = None
+        self.results = [] ## size
+        self.filter_subs = [
+            message_filters.Subscriber(self._node, msg, topic, qos_profile=queueSize)
+            for topic, msg in zip(topics, msgs)
+        ]
+        self.ts = message_filters.ApproximateTimeSynchronizer(self.filter_subs, sync_message_queue_size, sync_slop)
+        self.ts.registerCallback(self.callback)
+
+    def callback(self, *msgs):
+        self.msg_time = self._node.get_clock().now()
+        self.current_msg = msgs
+        self.results.append(msgs) ##
+        if len(self.results) >= self.size:
+            for sub in self.filter_subs:
+                sub.unsubscribe()
+
+    def waitResults(self, timeout=None):
+        """"Waiting N results
+
+        Args:
+            timeout ( float, default = None ) : Time for timeout
+
+        Returns:
+            None
+
+        """
+        self._pre_wait(timeout)
+        while rclpy.ok() and ((self.timeout is None) or
+                              (self.timeout >= self._node.get_clock().now())):
+            if len(self.results) >= self.size:
+                return self.results
+            else:
+                rclpy.spin_once(self._node, timeout_sec=0.002)
+
 #
 # RobotInterface
 #
@@ -1467,6 +1500,8 @@ class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
         if self.executor is None:
             rclpy.spin_once(self._joint_node, timeout_sec=0)
             rclpy.spin_once(self._device_node, timeout_sec=timeout_sec)
+        else:
+            self.executor.spin_once(timeout_sec=timeout_sec)
 
     def __load_robot(self):
         if 'robot_model' in self.info:
@@ -1726,6 +1761,8 @@ class RobotInterface(JointInterface, DeviceInterface, MobileBaseInterface):
         return RosDevice({'name': name, 'topic': topic, 'type': msg})
     ## getRosService
     ## getRosAction
+    def createNode(self, name):
+        return rclpy.create_node(name)
 
 ##
 ## sample usage

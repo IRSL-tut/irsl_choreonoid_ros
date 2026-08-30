@@ -108,6 +108,9 @@ class RosDeviceBase(object):
     @property
     def robot(self):
         return self.__robot
+#    @robot.setter
+#    def robot(self, in_robot):
+#        self.__robot = in_robot
 
 class OneShotSubscriber(RosDeviceBase):
     """
