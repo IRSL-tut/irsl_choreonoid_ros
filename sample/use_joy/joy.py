@@ -1,3 +1,11 @@
+#
+# WARNING WARNING WARNING
+#
+# use irsl_choreonoid_ros/joy_control.py
+#
+# WARNING WARNING WARNING
+#
+
 # ---
 # jupyter:
 #   jupytext:

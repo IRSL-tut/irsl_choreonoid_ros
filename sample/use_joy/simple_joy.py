@@ -1,3 +1,11 @@
+#
+# WARNING WARNING WARNING
+#
+# use irsl_choreonoid_ros/joy_control.py and impliment functions for specific robot
+#
+# WARNING WARNING WARNING
+#
+
 from joy import JoyParser, JoyCameraCoords
 import rospy
 import time
