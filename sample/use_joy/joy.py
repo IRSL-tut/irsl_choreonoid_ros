@@ -104,12 +104,14 @@ class JoyCoords(JoyParser):
         self.JoyDisplay = True
         self.trans_idx = [JoyParser.AXIS0_X, JoyParser.AXIS0_Y, JoyParser.AXIS0_Z]
         self.trans_sign = npa([1, 1, 1])
+        self.trans_mask = npa([1, 1, 1])
         self.rot_idx   = [JoyParser.AXIS1_X, JoyParser.AXIS1_Y, JoyParser.AXIS1_Z]
         self.rot_sign = npa([1, 1, 1])
+        self.rot_mask = npa([1, 1, 1])
     def makeTranslation(self, val_lst):
-        return self.trans_sign * npa( [ val_lst[i] if i >= 0 else 0.0 for i in self.trans_idx ] )
+        return self.trans_mask * self.trans_sign * npa( [ val_lst[i] if i >= 0 else 0.0 for i in self.trans_idx ] )
     def makeRotation(self, val_lst):
-        return self.rot_sign   * npa( [ val_lst[i] if i >= 0 else 0.0 for i in self.rot_idx ] )
+        return self.rot_mask   * self.rot_sign   * npa( [ val_lst[i] if i >= 0 else 0.0 for i in self.rot_idx ] )
     ##
     def callback_motion_diff(self):
         ## rospy.loginfo(f'cb: JoyCoordsDiff: {self}')
