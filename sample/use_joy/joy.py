@@ -64,12 +64,12 @@ class JoyParser(object):
         self.prev_tm = None
         self.msg = None
     ##
-    def initializeROS(self, **kwargs):
+    def initializeROS(self, joy_topic_name='/webjoy', **kwargs):
         try:
             rospy.init_node('testjoy', **kwargs)
         except Exception as e:
             pass
-        self.sub = rospy.Subscriber('/webjoy', Joy,
+        self.sub = rospy.Subscriber(joy_topic_name, Joy,
                                     callback=self.callback_joy, queue_size=1)
     ##
     def initialSettings(self):
